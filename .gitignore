@@ -1,6 +1,7 @@
 # Documentation files (specific files only)
 DocumentationsFiles.txt
 Step-by-step.txt
+roadmap.txt
 
 # Python bytecode
 *.pyc
