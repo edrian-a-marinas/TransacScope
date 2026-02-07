@@ -6,9 +6,3 @@ Step-by-step.txt
 *.pyc
 __pycache__/
 
-
-
-git rm --cached Step-by-step.txt
-git rm --cached backend/.gitignore
-git rm --cached gitignore
-
