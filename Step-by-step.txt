@@ -1,0 +1,87 @@
+Summary Workflow
+
+1. Setup database → create tables, seed admin
+2. Build schemas → transactions, categories (request/response models)
+3. Build services → transactions_service.py with CRUD + queries; categories_service.py
+4. Build routers → expose endpoints using service functions
+5. Setup main.py → include routers, run FastAPI
+6. Test backend → Postman / tests/ to validate endpoints
+7. Add core/security → JWT, password hashing, roles
+8. Build frontend → dashboard, transaction forms, report views
+
+
+
+1. Database
+    - Purpose: Define the structure your app will use; everything else depends on it.
+    - Folder/File: backend/migrations/
+        - create_tables.sql → tables: users, categories, transactions, reports
+        - seed_admin.sql → create default admin
+        - indexes.sql → optional indexes for faster queries
+    - Tip: Test manually with psql to ensure tables work.
+
+2. Schemas
+    - Purpose: Define Pydantic models for request validation and response formatting.
+    - Folder/File: backend/app/schemas/
+        - transactions.py → TransactionCreate, TransactionRead, TransactionUpdate
+        - categories.py → CategoryCreate, CategoryRead
+        - users.py → optional at this stage
+    - Tip: Start with transactions first because that’s the core of your project.
+
+3. Services
+    - Purpose: Database logic and queries (CRUD + filtering/searching + aggregations)
+    - Folder/File: backend/app/services/
+        - transactions_service.py → create, read, update, delete, query/filter transactions
+        - categories_service.py → manage categories
+        - reports_service.py → summaries, aggregation queries
+    - Tip: Everything that interacts with the database goes here, including queries.
+
+4. Routers
+    - Purpose: HTTP layer, connects frontend request → service → response
+    - Folder/File: backend/app/routers/
+        - transactions.py → /transactions endpoints: GET, POST, PUT, DELETE
+        - categories.py → /categories endpoints
+        - reports.py → /reports endpoints
+        - users.py → optional now, add later when doing auth
+    - Tip: Routers just call services and return schemas; no database logic here.
+
+5. Main.py
+    - Purpose: Wire routers to the FastAPI app; minimal code
+    - Folder/File: backend/app/main.py
+        - Example:
+            from fastapi import FastAPI
+            from app.routers import transactions, categories, reports
+
+            app = FastAPI()
+
+            app.include_router(transactions.router)
+            app.include_router(categories.router)
+            app.include_router(reports.router)
+
+6. Test Backend
+    - Purpose: Make sure endpoints work, data flows correctly, queries return proper results
+    - Folder/File: backend/tests/
+        - test_health.py → simple check if server is running
+        - Later: add tests for transactions, categories, reports
+
+7. Core / Security (last)
+    - Purpose: JWT auth, password hashing, role-based access, config constants
+    - Folder/File: backend/app/core/
+        - config.py → env variables, DB URL
+        - security.py → password hash / verify
+        - jwt.py → generate/verify JWT tokens
+        - settings.py → load environment variables
+    - Tip: Implement this after your backend works fully. Then wrap routers or services with auth logic.
+
+8. Frontend (after backend works)
+    - Folder/File: frontend/ → React + Tailwind
+    - Build UI and connect to your API endpoints
+
+Summary Workflow:
+    - Setup database → create tables, seed admin
+    - Build schemas → transactions, categories (request/response models)
+    - Build services → transactions_service.py with CRUD + queries; categories_service.py
+    - Build routers → expose endpoints using service functions
+    - Setup main.py → include routers, run FastAPI
+    - Test backend → Postman / tests/ to validate endpoints
+    - Add core/security → JWT, password hashing, roles
+    - Build frontend → dashboard, transaction forms, report views
