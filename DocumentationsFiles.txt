@@ -1,0 +1,68 @@
+# TransactionProject
+# cd ~/Projects/Transaction-Processing/backend
+# source venv/bin/activate
+# uvicorn app.main:app --reload
+
+
+# http://127.0.0.1:8000/
+
+#\i /home/edrian/Projects/Transaction-Processing/backend/migrations/001_.sql
+
+backend folders
+
+backend/App -> folders inside this and notes
+  Services = business logic This separation is common in real codebases -> queries all backend logic, queries, CRUD
+    files ->
+      transactions_service.py → CRUD + queries + aggregation for transactions
+      categories_service.py → CRUD for categories
+      reports_service.py → aggregation queries, summaries, charts data
+      users_service.py → optional, for user creation, fetching, roles
+
+      queries = filtering/searching/aggregating data, usually handled in services and triggered by routers
+
+  Routers = HTTP layer, handles requests/responses, all FastAPI endpoints (@app.get/post/put/)
+    files ->
+      transactions.py → /transactions endpoints: GET, POST, PUT, DELETE; calls transactions_service.py
+      categories.py → /categories endpoints: GET, POST, PUT, DELETE; calls categories_service.py
+      reports.py → /reports endpoints: GET summaries, charts; calls reports_service.py
+      users.py → optional for now; handles user registration, fetch, and role endpoints; calls users_service.py
+
+
+  Schemas = data validation layer, like TypeScript types
+    files ->
+      transactions.py → Pydantic models: TransactionCreate, TransactionRead, TransactionUpdate
+      categories.py → Pydantic models: CategoryCreate, CategoryRead
+      reports.py → Pydantic models: ReportSummary, ReportChartData
+      users.py → optional: UserCreate, UserRead, UserUpdate
+
+  Core = project-wide configs, constants, security, JWT
+    files ->
+      config.py → environment variables, DB URL, constants
+      security.py → password hashing and verification functions
+      jwt.py → JWT token creation and validation
+      settings.py → load env variables into Python objects for app-wide use 
+
+  main.py → minimal code to start FastAPI, include routers, run the app 
+
+
+backend/db -> file inside
+  connection.py → database connection setup, e.g., asyncpg
+
+backend/migrations
+  create_tables.sql → SQL commands to create all tables: users, categories, transactions, reports
+  seed_admin.sql → initial admin user creation for testing/demo
+  indexes.sql → optional indexes to speed up queries (e.g., date, category_id, user_id)
+
+backend/tests
+  test_health.py → simple server health check; tests that FastAPI is running
+  (later) tests for transactions_service.py, categories_service.py, reports_service.py
+
+backend/venv -> just for activation of env
+
+frontend/ -> empty lolz, cause planning to start backend first
+
+
+
+
+
+

@@ -4,6 +4,8 @@ from services.transactions_service import create_transaction
 
 router = APIRouter(prefix="/transactions")
 
-@router.post("/")
+@router.get("/")
 async def create(tx: TransactionCreate):
     return await create_transaction(tx)
+
+
