@@ -84,33 +84,60 @@ async def create_transaction(tx, user_id: int):
 async def update_transaction(tx_id: int, tx, user_id: int):
   pool = await get_pool()
   async with pool.acquire() as conn:
-    # Only description and transaction_date are editable
-    row = await conn.fetchrow(
+    # Get existing transaction first
+    old_row = await conn.fetchrow(
+      """
+      SELECT id, user_id, category_id, amount, transaction_type, description, transaction_date
+      FROM transactions
+      WHERE id = $1
+      """,
+      tx_id
+    )
+    if not old_row:
+      return None  # Transaction not found
+
+    # Update only allowed fields
+    updated_row = await conn.fetchrow(
       """
       UPDATE transactions t
       SET
         description = COALESCE($1, t.description),
         transaction_date = COALESCE($2, t.transaction_date)
-      FROM categories c
       WHERE t.id = $3
-        AND t.user_id = $4
-        AND t.category_id = c.id
-      RETURNING t.id,
-                t.amount,
-                t.category_id,
-                t.description,
-                t.transaction_date,
-                t.transaction_type,
-                t.user_id,
-                c.name AS category_name;
+      RETURNING t.id, t.user_id, t.category_id, t.amount, t.transaction_type, t.description, t.transaction_date
       """,
       tx.description,
       tx.transaction_date,
-      tx_id,
-      user_id
+      tx_id
     )
 
-    return dict(row) if row else None
+    if not updated_row:
+      return None
+
+    # Log the old values into transactions_history
+    await conn.execute(
+      """
+      INSERT INTO transactions_history (
+        transaction_id,
+        user_id,
+        old_description,
+        old_transaction_date
+      ) VALUES ($1, $2, $3, $4)
+      """,
+      tx_id,
+      user_id,
+      old_row['description'],
+      old_row['transaction_date']
+    )
+
+    # Fetch category_name for response
+    category_name = await conn.fetchval(
+      "SELECT name FROM categories WHERE id = $1",
+      updated_row['category_id']
+    )
+
+    # Return the updated transaction as dict including category_name
+    return dict(updated_row, category_name=category_name)
 
 
 # DELETE
