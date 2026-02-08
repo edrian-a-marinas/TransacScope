@@ -7,7 +7,7 @@ from db.connection import get_pool
 async def get_transactions(user_id: int | None = None):
   pool = await get_pool()
   async with pool.acquire() as conn:
-    if user_id:
+    if user_id is not None:
       rows = await conn.fetch(
         """
         SELECT t.id, t.amount, t.category_id, c.name AS category_name, t.description, t.transaction_date, t.user_id, transaction_type
@@ -43,7 +43,8 @@ async def get_transaction_by_id(tx_id: int):
       """,
       tx_id
     )
-    return row
+    return dict(row) if row else None
+
 
 
 # CREATE
@@ -80,27 +81,36 @@ async def create_transaction(tx, user_id: int):
 
 
 # UPDATE (partial update supported)
-async def update_transaction(tx_id: int, tx):
+async def update_transaction(tx_id: int, tx, user_id: int):
   pool = await get_pool()
   async with pool.acquire() as conn:
+    # Only description and transaction_date are editable
     row = await conn.fetchrow(
       """
-      UPDATE transactions
+      UPDATE transactions t
       SET
-        amount = COALESCE($1, amount),
-        category_id = COALESCE($2, category_id),
-        description = COALESCE($3, description),
-        date = COALESCE($4, date)
-      WHERE id = $5
-      RETURNING id, amount, category_id, description, date, user_id
+        description = COALESCE($1, t.description),
+        transaction_date = COALESCE($2, t.transaction_date)
+      FROM categories c
+      WHERE t.id = $3
+        AND t.user_id = $4
+        AND t.category_id = c.id
+      RETURNING t.id,
+                t.amount,
+                t.category_id,
+                t.description,
+                t.transaction_date,
+                t.transaction_type,
+                t.user_id,
+                c.name AS category_name;
       """,
-      tx.amount,
-      tx.category_id,
       tx.description,
-      tx.date,
-      tx_id
+      tx.transaction_date,
+      tx_id,
+      user_id
     )
-    return row
+
+    return dict(row) if row else None
 
 
 # DELETE
@@ -137,4 +147,15 @@ async def get_monthly_summary(year: int, month: int, user_id: int):
       month,
       user_id
     )
-    return rows
+    return [dict(row) for row in rows]
+
+
+
+
+# ------------ NOTES ---------------
+# PUT
+# COALESCE ensures that if a field is not provided, it keeps its current value.
+
+
+
+# return [dict(row) for row in rows] = Converts each database row into a normal Python dict and returns them as a list

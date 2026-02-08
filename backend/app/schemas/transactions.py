@@ -17,10 +17,9 @@ class TransactionOut(TransactionCreate):
 
 
 class TransactionUpdate(BaseModel):
-  amount: Optional[Decimal] = None
-  category_id: Optional[int] = None
+  
   description: Optional[str] = None
-  date: Optional[date] = None
+  transaction_date: Optional[date] = None
 
 
 class TransactionRead(TransactionOut):
