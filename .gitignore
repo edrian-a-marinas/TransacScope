@@ -3,7 +3,7 @@ DocumentationsFiles.txt
 Step-by-step.txt
 roadmap.txt
 
-backend/migrations/test_queries.sql
+migrations/test_queries.sql
 
 # Python bytecode
 *.pyc
