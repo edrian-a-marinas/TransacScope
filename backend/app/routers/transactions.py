@@ -35,7 +35,7 @@ async def get_logged_in_user_id():
   Where blah blah blah
   """
   #the emulation user_id_logged in as ADMIN
-  user_id_of_logged_in = 1   # for reability only so this is the exaclt outpu of JWT / loggei n id
+  user_id_of_logged_in = 2   # for reability only so this is the exaclt outpu of JWT / loggei n id
   return user_id_of_logged_in
 
 
@@ -58,7 +58,7 @@ async def get_user_role(current_user_id):
       return row["name"] if row else None
   """
   # the emulation for role as admin
-  current_user_id = 'admin'       # place holder for admin example. can change to standard 
+  current_user_id = 'standard'       # place holder for admin example. can change to standard 
   fetched_role = current_user_id
 
   return fetched_role
@@ -70,7 +70,7 @@ async def list_transactions():
   role = await get_user_role(current_user_id)
 
   rows = await transactions_service.get_transactions(current_user_id, role)
-
+  
   return rows
 
 

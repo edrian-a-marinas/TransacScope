@@ -2,20 +2,7 @@
 
 from db.connection import get_pool
 from app.routers import transactions
-from datetime import datetime
-
-
-#Possible feature to add - admin can choose to view all or view only his or only view others
-
-# ---- helpers -----
-def format_action_taken_at(row: dict) -> dict:
-  if isinstance(row.get("action_taken_at"), datetime):
-    row["action_taken_at"] = row["action_taken_at"].strftime(
-        "%Y-%m-%d %H:%M:%S"
-    )
-  return row
-
-
+from app.utils import helpers
 
 # READ: all transactions (optionally by user)
 async def get_transactions(current_user_id: int, role):
@@ -32,7 +19,6 @@ async def get_transactions(current_user_id: int, role):
         ORDER BY t.created_at DESC
         """
       )
-
 
     else:
       rows = await conn.fetch(
@@ -64,7 +50,7 @@ async def get_transactions_history(current_user_id, role):
       )
 
     result = [
-      format_action_taken_at(dict(row))
+      helpers.format_action_taken_at(dict(row))
       for row in rows
     ]
   
@@ -87,6 +73,7 @@ async def get_transaction_by_id(tx_id: int, current_user_id: int):
         """,
         tx_id
       )
+
     else:
       row = await conn.fetchrow(
         """
@@ -220,6 +207,7 @@ async def delete_transaction(tx_id: int, current_user_id: int, role):
       """,
       tx_id
     )
+
     if not tx:
       return None
 
@@ -270,6 +258,7 @@ async def get_monthly_summary(year: int, month: int, user_id: int):
       month,
       user_id
     )
+
     return [dict(row) for row in rows]
 
 
