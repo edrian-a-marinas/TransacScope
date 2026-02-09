@@ -26,16 +26,15 @@ class TransactionRead(TransactionOut):
 
 class TransactionHistoryRead(BaseModel):
   id: int
-  transaction_id: int
+  entity_id: int                # was transaction_id
   user_id: int
-  old_description: str
-  old_transaction_date: date
+  old_description: Optional[str] = None
+  old_transaction_date: Optional[date] = None
   action: str
-  action_taken_at: str
+  action_taken_at: datetime
 
   class Config:
-    orm_mode = True  
-
+    orm_mode = True
 
 
 

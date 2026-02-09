@@ -21,7 +21,6 @@ router = APIRouter(
 
 
 
-
 # Temporary placeholder; replace with authenticated user ID from JWT/session later
 # In the future, add auth dependency here (e.g., current_user: User = Depends(get_current_user))
 # to protect the endpoint and filter transactions by user/role permissions.
@@ -57,6 +56,7 @@ async def get_user_role(current_user_id):
       )
       return row["name"] if row else None
   """
+
   # the emulation for role as admin
   current_user_id = 'standard'       # place holder for admin example. can change to standard 
   fetched_role = current_user_id
@@ -93,7 +93,6 @@ async def create_transaction(payload: TransactionCreate):
   row = await transactions_service.create_transaction(
     payload,
     CURRENT_USER_ID,
-    role
   )
 
   if not row:
@@ -130,7 +129,7 @@ async def delete_transaction(transaction_id: int):
 
   deleted = await transactions_service.delete_transaction(
     transaction_id,
-    CURRENT_USER_ID ,
+    CURRENT_USER_ID,
     role
   )
   if not deleted:

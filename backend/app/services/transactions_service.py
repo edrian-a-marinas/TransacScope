@@ -3,6 +3,7 @@
 from db.connection import get_pool
 from app.routers import transactions
 from app.utils import helpers
+import json
 
 # READ: all transactions (optionally by user)
 async def get_transactions(current_user_id: int, role):
@@ -41,11 +42,22 @@ async def get_transactions_history(current_user_id, role):
   async with pool.acquire() as conn:
     if role == "admin":
       rows = await conn.fetch(
-        "SELECT * FROM transactions_history ORDER BY action_taken_at DESC"
+        """
+        SELECT *
+        FROM log_history
+        WHERE entity_type = 'transaction'
+        ORDER BY action_taken_at DESC
+        """
       )
     else:
       rows = await conn.fetch(
-        "SELECT * FROM transactions_history WHERE user_id = $1 ORDER BY action_taken_at DESC",
+        """
+        SELECT *
+        FROM log_history
+        WHERE entity_type = 'transaction'
+          AND user_id = $1
+        ORDER BY action_taken_at DESC
+        """,
         current_user_id
       )
 
@@ -58,10 +70,9 @@ async def get_transactions_history(current_user_id, role):
 
 
 # READ: single transaction
-async def get_transaction_by_id(tx_id: int, current_user_id: int):
+async def get_transaction_by_id(tx_id: int, current_user_id: int, role):
   pool = await get_pool()
   async with pool.acquire() as conn:
-    role = await transactions.get_user_role(current_user_id)
 
     if role == "admin":
       row = await conn.fetchrow(
@@ -93,7 +104,7 @@ async def get_transaction_by_id(tx_id: int, current_user_id: int):
 
 
 # CREATE
-async def create_transaction(tx, current_user_id: int, role):
+async def create_transaction(tx, current_user_id: int):
   pool = await get_pool()
   async with pool.acquire() as conn:
     inserted = await conn.fetchrow(
@@ -124,8 +135,6 @@ async def create_transaction(tx, current_user_id: int, role):
     )
 
     return dict(row)
-
-
 
 
 # UPDATE (partial update supported)
@@ -165,20 +174,23 @@ async def update_transaction(tx_id: int, tx, current_user_id: int, role):
 
     await conn.execute(
       """
-      INSERT INTO transactions_history (
-        transaction_id,
+      INSERT INTO log_history (
+        entity_type,
+        entity_id,
         user_id,
         action,
-        old_description,
-        old_transaction_date,
+        old_data,
         action_taken_at
       )
-      VALUES ($1, $2, 'updated', $3, $4, now())
+      VALUES ('transaction', $1, $2, 'updated', $3::jsonb, now())
       """,
       tx_id,
       current_user_id,
-      old["description"],
-      old["transaction_date"]
+
+      json.dumps({
+        "description": old["description"],
+        "transaction_date": str(old["transaction_date"]) if old["transaction_date"] else None
+      })
     )
 
     category_name = await conn.fetchval(
@@ -187,6 +199,8 @@ async def update_transaction(tx_id: int, tx, current_user_id: int, role):
     )
 
     return dict(updated, category_name=category_name)
+
+
 
 
 
@@ -222,16 +236,25 @@ async def delete_transaction(tx_id: int, current_user_id: int, role):
 
     await conn.execute(
       """
-      INSERT INTO transactions_history (
-          transaction_id,
-          user_id,
-          action,
-          action_taken_at
+      INSERT INTO log_history (
+        entity_type,
+        entity_id,
+        user_id,
+        action,
+        old_data,
+        action_taken_at
       )
-      VALUES ($1, $2, 'deleted', now())
+      VALUES ('transaction', $1, $2, 'deleted', $3::jsonb, now())
       """,
       tx_id,
-      current_user_id
+      current_user_id,
+      json.dumps({
+        "description": tx["description"],
+        "transaction_date": str(tx["transaction_date"]) if tx["transaction_date"] else None,
+        "category_id": tx["category_id"],
+        "amount": str(tx["amount"]),
+        "transaction_type": tx["transaction_type"]
+      })
     )
 
     return True
