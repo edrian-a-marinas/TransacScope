@@ -1,4 +1,6 @@
 from db.connection import get_pool
+import json
+
 
 # READ: all categories (global)
 async def get_categories():
@@ -11,10 +13,11 @@ async def get_categories():
       ORDER BY name ASC
       """
     )
-    return rows
+    return [dict(row) for row in rows]
+
 
 # READ: single category
-async def get_category_by_id(category_id: int):
+async def get_category_by_id(ctg_id: int):
   pool = await get_pool()
   async with pool.acquire() as conn:
     row = await conn.fetchrow(
@@ -23,18 +26,19 @@ async def get_category_by_id(category_id: int):
       FROM categories
       WHERE id = $1
       """,
-      category_id
+      ctg_id
     )
-    return row
+    return dict(row) if row else None
+
 
 # CREATE: admin only
 async def create_category(ctg, current_user_id: int, role):
+
+  if role != "admin":
+    return None
+
   pool = await get_pool()
   async with pool.acquire() as conn:
-
-    if role != "admin":
-      return None
-    
     row = await conn.fetchrow(
       """
       INSERT INTO categories (name, description)
@@ -45,69 +49,119 @@ async def create_category(ctg, current_user_id: int, role):
       ctg.description
     )
 
-    await conn.execute(
-      """
-      INSERT INTO transactions_history (
-        transaction_id,
-        user_id,
-        action,
-        old_description,
-        old_transaction_date,
-        action_taken_at
-      )
-      VALUES ($1, $2, 'updated', $3, $4, now())
-      """,
-      tx_id,
-      current_user_id,
-      old["description"],
-      old["transaction_date"]
-    )
+    return dict(row) if row else None
 
-    category_name = await conn.fetchval(
-      "SELECT name FROM categories WHERE id = $1",
-      updated['category_id']
-    )
-
-    return row
 
 # UPDATE: admin only
-async def update_category(category_id: int, name: str = None, description: str = None):
+async def update_category(ctg_id: int, ctg, current_user_id: int, role):
+
+  if role != "admin":
+    return None
+
   pool = await get_pool()
   async with pool.acquire() as conn:
-    row = await conn.fetchrow(
+
+    old = await conn.fetchrow(
+      """
+      SELECT *
+      FROM categories
+      WHERE id = $1
+      """,
+      ctg_id
+    )
+
+    if not old:
+      return None
+
+    updated = await conn.fetchrow(
       """
       UPDATE categories
-      SET name = COALESCE($1, name),
-          description = COALESCE($2, description)
+      SET
+        name = COALESCE($1, name),
+        description = COALESCE($2, description)
       WHERE id = $3
       RETURNING id, name, description, created_at
       """,
-      name,
-      description,
-      category_id
+      ctg.name,
+      ctg.description,
+      ctg_id
     )
-    return row
+
+    await conn.execute(
+      """
+      INSERT INTO log_history (
+        entity_type,
+        entity_id,
+        user_id,
+        action,
+        old_data,
+        new_data,
+        action_taken_at
+      )
+      VALUES ('category', $1, $2, 'updated', $3::jsonb, $4::jsonb, now())
+      """,
+      ctg_id,
+      current_user_id,
+      json.dumps({
+        "name": old["name"],
+        "description": old["description"]
+      }),
+      json.dumps({
+        "name": updated["name"],
+        "description": updated["description"]
+      })
+    )
+
+    return dict(updated)
+
 
 # DELETE: admin only
-async def delete_category(category_id: int):
+async def delete_category(ctg_id: int, current_user_id: int, role):
+
+  if role != "admin":
+    return None
+
   pool = await get_pool()
   async with pool.acquire() as conn:
-    # Optional: prevent deletion if transactions exist
-    exists = await conn.fetchval(
+
+    old = await conn.fetchrow(
       """
-      SELECT EXISTS(
-        SELECT 1 FROM transactions WHERE category_id = $1
-      )
+      SELECT *
+      FROM categories
+      WHERE id = $1
       """,
-      category_id
+      ctg_id
     )
-    if exists:
-      return False
-    result = await conn.execute(
+
+    if not old:
+      return None
+
+    await conn.execute(
       """
       DELETE FROM categories
       WHERE id = $1
       """,
-      category_id
+      ctg_id
     )
-    return result
+
+    await conn.execute(
+      """
+      INSERT INTO log_history (
+        entity_type,
+        entity_id,
+        user_id,
+        action,
+        old_data,
+        action_taken_at
+      )
+      VALUES ('category', $1, $2, 'deleted', $3::jsonb, now())
+      """,
+      ctg_id,
+      current_user_id,
+      json.dumps({
+        "name": old["name"],
+        "description": old["description"]
+      })
+    )
+
+    return True
