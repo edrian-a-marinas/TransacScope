@@ -87,9 +87,13 @@ async def update_user_role(user_id: int, new_role_id: int, current_user_id: int,
     if current_user_role != "admin":
       return None
 
-    # Admin cannot demote/promote other admins
-    if target_user["role_id"] != 2 or new_role_id != 2:
-      return None
+    # Admins can only act on standard users
+    if target_user["role_id"] != 2:
+      return None  # can't change other admins or super admin
+
+    # Admins can promote standard user to admin (role_id=1) or keep as standard (role_id=2)
+    if new_role_id not in [1, 2]:
+      return None  # invalid role
 
     row = await conn.fetchrow(
       """
