@@ -1,6 +1,7 @@
-from fastapi import APIRouter, HTTPException
-from typing import List
-from app.auth import jwt
+from fastapi import APIRouter, HTTPException, Depends
+from typing import List, Tuple
+
+from app.auth.format_role import get_user_id_and_role
 from app.services import transactions_service
 
 from app.schemas.transactions import (
@@ -10,50 +11,36 @@ from app.schemas.transactions import (
   TransactionHistoryRead
 )
 
-
 router = APIRouter(
-  prefix="/transactions"
+  prefix="/api/transactions"
 )
 
 # possible new feature or ddition , make the def logged and user role in other file, then just import it so its a module other file can import it 
 
 
 
-# Temporary placeholder; replace with authenticated user ID from JWT/session later
-# In the future, add auth dependency here (e.g., current_user: User = Depends(get_current_user))
-# to protect the endpoint and filter transactions by user/role permissions.
-# admins can see all transaction of literally all, 
-# Standard only see all their own transactions history
-# example JWT place holder temporary
-# always change each other of user logged and admin every time you change the other
-
-
-
 @router.get("/", response_model=List[TransactionRead])
-async def list_transactions():
-  current_user_id = await jwt.get_logged_in_user_id()
-  role = await jwt.get_user_role(current_user_id)
+async def list_transactions(user_data: Tuple[int, str] = Depends(get_user_id_and_role)):
 
-  rows = await transactions_service.get_transactions(current_user_id, role)
+  CURRENT_USER_ID, role = user_data
+  rows = await transactions_service.get_transactions(CURRENT_USER_ID, role)
   
   return rows
 
 
 @router.get("/history", response_model=List[TransactionHistoryRead])
-async def list_transaction_history():
-  current_user_id = await jwt.get_logged_in_user_id()
-  role = await jwt.get_user_role(current_user_id)
+async def list_transaction_history(user_data: Tuple[int, str] = Depends(get_user_id_and_role)):
 
-  rows = await transactions_service.get_transactions_history(current_user_id, role)
+  CURRENT_USER_ID, role = user_data
+  rows = await transactions_service.get_transactions_history(CURRENT_USER_ID, role)
 
   return rows
 
 
 @router.post("/", response_model=TransactionRead)
-async def create_transaction(payload: TransactionCreate):
+async def create_transaction(payload: TransactionCreate, user_data: Tuple[int, str] = Depends(get_user_id_and_role)):
 
-  CURRENT_USER_ID = await jwt.get_logged_in_user_id()
-
+  CURRENT_USER_ID, role = user_data
   row = await transactions_service.create_transaction(
     payload,
     CURRENT_USER_ID,
@@ -66,12 +53,10 @@ async def create_transaction(payload: TransactionCreate):
 
 
 @router.put("/{transaction_id}", response_model=TransactionRead)
-async def update_transaction(transaction_id: int, payload: TransactionUpdate):
+async def update_transaction(transaction_id: int, payload: TransactionUpdate, user_data: Tuple[int, str] = Depends(get_user_id_and_role)):
 
-  CURRENT_USER_ID = await jwt.get_logged_in_user_id()
-  role = await jwt.get_user_role(CURRENT_USER_ID)
+  CURRENT_USER_ID, role = user_data
 
-  # Only update own transaction
   row = await transactions_service.update_transaction(
     transaction_id,
     payload,
@@ -86,11 +71,9 @@ async def update_transaction(transaction_id: int, payload: TransactionUpdate):
 
 
 @router.delete("/{transaction_id}")
-async def delete_transaction(transaction_id: int):
+async def delete_transaction(transaction_id: int, user_data: Tuple[int, str] = Depends(get_user_id_and_role)):
 
-  CURRENT_USER_ID = await jwt.get_logged_in_user_id()
-  role = await jwt.get_user_role(CURRENT_USER_ID)
-
+  CURRENT_USER_ID, role = user_data
   deleted = await transactions_service.delete_transaction(
     transaction_id,
     CURRENT_USER_ID,
