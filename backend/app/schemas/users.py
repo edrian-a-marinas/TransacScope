@@ -1,5 +1,5 @@
 from pydantic import BaseModel, EmailStr, StringConstraints
-from typing import Optional, Annotated
+from typing import Optional, Annotated, Literal
 from datetime import datetime
 
 PhoneNumber = Annotated[str, StringConstraints(pattern=r'^09\d{9}$')]
@@ -9,9 +9,9 @@ NameStr = Annotated[str, StringConstraints(min_length=1, max_length=50, pattern=
 
 class UserBase(BaseModel):
   email: EmailStr
-  first_name: str
+  first_name: NameStr
   middle_name: Optional[str] = None
-  last_name: str
+  last_name: NameStr
   phone_number: PhoneNumber
 
 class UserCreate(UserBase):
@@ -19,7 +19,7 @@ class UserCreate(UserBase):
 
 class UserRead(UserBase):
   id: int
-  role_id: int
+  role_id: Literal[1, 2]
   is_active: bool
   created_at: datetime
   request_admin: bool
@@ -29,7 +29,7 @@ class UserRoleUpdate(BaseModel):
 
 class UserLogin(BaseModel):
   email: EmailStr
-  password: str
+  password: PasswordStr
 
 class UserAdminRequest(BaseModel):
   request_admin: bool

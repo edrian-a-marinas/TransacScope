@@ -9,18 +9,18 @@ class ActionType(str, Enum):
   updated = "updated"
   deleted = "deleted"
 
+
 class TransactionType(str, Enum):
   debit = "debit"
   credit = "credit"
 
 
-
 class TransactionCreate(BaseModel):
-  amount: Decimal = Field(gt=0, max_digits=12, decimal_places=2)
+  amount: Decimal = Field(gt=Decimal("0"), max_digits=12, decimal_places=2)
   category_id: int
   description: str
   transaction_date: date
-  transaction_type: str 
+  transaction_type: TransactionType 
 
 
 class TransactionOut(TransactionCreate):

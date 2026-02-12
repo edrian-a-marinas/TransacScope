@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, model_validator
 from datetime import date, datetime
 from typing import Literal, List
 
@@ -7,6 +7,12 @@ class ReportBase(BaseModel):
   report_type: Literal["weekly", "monthly"]
   start_date: date
   end_date: date
+
+  @model_validator(mode="after")
+  def validate_dates(self):
+    if self.start_date > self.end_date:
+      raise ValueError("start_date must be before or equal to end_date")
+    return self
 
 
 class ReportCreate(ReportBase):
