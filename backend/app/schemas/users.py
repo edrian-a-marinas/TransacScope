@@ -1,16 +1,21 @@
-from pydantic import BaseModel, EmailStr
-from typing import Optional
+from pydantic import BaseModel, EmailStr, StringConstraints
+from typing import Optional, Annotated
 from datetime import datetime
+
+PhoneNumber = Annotated[str, StringConstraints(pattern=r'^09\d{9}$')]
+PasswordStr = Annotated[str, StringConstraints(min_length=8, max_length=72)]
+NameStr = Annotated[str, StringConstraints(min_length=1, max_length=50, pattern=r'^[A-Za-z\s\-]+$')]
+
 
 class UserBase(BaseModel):
   email: EmailStr
   first_name: str
   middle_name: Optional[str] = None
   last_name: str
-  phone_number: str
+  phone_number: PhoneNumber
 
 class UserCreate(UserBase):
-  password: str
+  password: PasswordStr
 
 class UserRead(UserBase):
   id: int

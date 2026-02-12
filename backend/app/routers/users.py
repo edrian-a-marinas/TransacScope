@@ -1,7 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from typing import List, Tuple
 
-from app.auth.security import get_current_user
 from app.auth.format_role import get_user_id_and_role
 from app.services import users_service
 from app.schemas.users import UserBase, UserRead, UserRoleUpdate, UserAdminRequest
@@ -30,7 +29,7 @@ async def request_admin_promotion(payload: UserAdminRequest, user_data: Tuple[in
   return {"detail": "Request sent to admin"}
 
 
-@router.patch("/{target_user_id}/role", response_model=UserRead)
+@router.put("/{target_user_id}/role", response_model=UserRead)
 async def update_role(target_user_id: int, payload: UserRoleUpdate, user_data: Tuple[int, str] = Depends(get_user_id_and_role)):
   user_id, role = user_data
   current_user_role = "admin" if role == "admin" else "standard"
@@ -47,10 +46,18 @@ async def soft_delete(target_user_id: int, user_data: Tuple[int, str] = Depends(
   user_id, role = user_data
   if role != "admin" and user_id != SUPER_ADMIN_ID:
     raise HTTPException(status_code=403, detail="Admin only")
-  success = await users_service.soft_delete_user(target_user_id, "admin")
+
+  success = await users_service.soft_delete_user(
+    target_user_id,
+    user_id,
+    role
+  )
+
   if not success:
     raise HTTPException(status_code=404, detail="User not found")
+
   return {"detail": "User soft-deleted"}
+
 
 
 @router.delete("/me")
