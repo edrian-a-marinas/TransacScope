@@ -1,7 +1,8 @@
-from fastapi import APIRouter, HTTPException
-from typing import List
+from fastapi import APIRouter, HTTPException, Depends
+from typing import List, Tuple
+from app.auth.format_role import get_user_id_and_role
 from app.services import categories_service
-from app.auth import jwt
+
 
 from app.schemas.categories import (
   CategoryCreate, 
@@ -10,7 +11,7 @@ from app.schemas.categories import (
 )
 
 router = APIRouter(
-  prefix="/categories"
+  prefix="/api/categories"
 )
 
 
@@ -23,10 +24,9 @@ async def list_categories():
 
 # POST (admin only)
 @router.post("/", response_model=CategoryRead)
-async def create_category(payload: CategoryCreate):
+async def create_category(payload: CategoryCreate, user_data: Tuple[int, str] = Depends(get_user_id_and_role)):
 
-  CURRENT_USER_ID = await jwt.get_logged_in_user_id()
-  role = await jwt.get_user_role(CURRENT_USER_ID)
+  CURRENT_USER_ID, role = user_data
 
   if role != "admin":
     raise HTTPException(status_code=403, detail="Admin only")
@@ -45,10 +45,9 @@ async def create_category(payload: CategoryCreate):
 
 # PUT (admin only)
 @router.put("/{category_id}", response_model=CategoryRead)
-async def update_category(category_id: int, payload: CategoryUpdate):
+async def update_category(category_id: int, payload: CategoryUpdate, user_data: Tuple[int, str] = Depends(get_user_id_and_role)):
 
-  CURRENT_USER_ID = await jwt.get_logged_in_user_id()
-  role = await jwt.get_user_role(CURRENT_USER_ID)
+  CURRENT_USER_ID, role = user_data
 
   row = await categories_service.update_category(
     category_id,
@@ -65,10 +64,9 @@ async def update_category(category_id: int, payload: CategoryUpdate):
 
 # DELETE (admin only)
 @router.delete("/{category_id}")
-async def delete_category(category_id: int):
-
-  CURRENT_USER_ID = await jwt.get_logged_in_user_id()
-  role = await jwt.get_user_role(CURRENT_USER_ID)
+async def delete_category(category_id: int, user_data: Tuple[int, str] = Depends(get_user_id_and_role)):
+                          
+  CURRENT_USER_ID, role = user_data
 
   deleted = await categories_service.delete_category(
     category_id,

@@ -1,28 +1,18 @@
-from fastapi import APIRouter, HTTPException
-from app.auth import jwt
+from fastapi import APIRouter, HTTPException, Depends
+from typing import Tuple
+from app.auth.format_role import get_user_id_and_role
 from app.services import reports_service
-from app.schemas.reports import (
-  ReportCreate,
-  ReportResult
-)
+from app.schemas.reports import ReportCreate, ReportResult
 
-router = APIRouter(
-  prefix="/reports",
-)
+router = APIRouter(prefix="/api/reports")
 
 
 @router.post("/", response_model=ReportResult)
-async def generate_report(payload: ReportCreate):
+async def generate_report(payload: ReportCreate, user_data: Tuple[int, str] = Depends(get_user_id_and_role)):
+    
+  CURRENT_USER_ID, role = user_data
 
-  CURRENT_USER_ID = await jwt.get_logged_in_user_id()
-  role = await jwt.get_user_role(CURRENT_USER_ID)
-
-  result = await reports_service.generate_report(
-    payload,
-    CURRENT_USER_ID,
-    role
-  )
-
+  result = await reports_service.generate_report(payload, CURRENT_USER_ID, role)
   if not result:
     raise HTTPException(status_code=400, detail="Report generation failed")
 
