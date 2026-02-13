@@ -8,6 +8,10 @@ backend/migrations/test_queries.sql
 backend/migrations/001_create_tables.sql
 backend/migrations/002_seed_admin.sql
 backend/migrations/004_create_views.sql
+
+backend/.env
+backend/postman.txt
+
 # Python bytecode
 *.pyc
 __pycache__/
