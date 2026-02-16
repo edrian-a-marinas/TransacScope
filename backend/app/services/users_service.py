@@ -1,29 +1,7 @@
 from db.connection import get_pool
-from app.schemas.users import UserBase, UserCreate
+from app.schemas.users import UserBase
 
 SUPER_ADMIN_ID = 1  # Only this user can demote other admins
-
-async def verify_user(email: str, password: str):
-  pool = await get_pool()
-  async with pool.acquire() as conn:
-    # Only fetch active users
-    row = await conn.fetchrow(
-      "SELECT * FROM users WHERE email=$1 AND is_active=true",
-      email
-    )
-    if not row:
-      return None
-
-    user = dict(row)
-    # Verify password using Postgres crypt function
-    pw_check = await conn.fetchval(
-      "SELECT crypt($1, password_hash) = password_hash FROM users WHERE id=$2",
-      password, user["id"]
-    )
-    if not pw_check:
-      return None
-
-    return user
 
 async def get_user_by_id(user_id: int):
   pool = await get_pool()
@@ -36,31 +14,7 @@ async def get_user_by_email(email: str):
   async with pool.acquire() as conn:
     row = await conn.fetchrow("SELECT * FROM users WHERE email=$1", email)
     return dict(row) if row else None
-
-async def create_user(user: UserCreate):
-  pool = await get_pool()
-  async with pool.acquire() as conn:
-    query = """
-    INSERT INTO users (email, password_hash, first_name, middle_name, last_name, phone_number, role_id)
-    VALUES (
-      $1,
-      crypt($2, gen_salt('bf')),
-      $3, $4, $5, $6,
-      2
-    )
-    RETURNING id, email, first_name, middle_name, last_name, phone_number, role_id, is_active, created_at, request_admin;
-    """
-    values = (
-      user.email,
-      user.password,
-      user.first_name,
-      user.middle_name,
-      user.last_name,
-      user.phone_number
-    )
-    row = await conn.fetchrow(query, *values)
-    return dict(row) if row else None
-
+  
 
 async def update_user_role(user_id: int, new_role_id: int, current_user_id: int, current_user_role: str):
   pool = await get_pool()

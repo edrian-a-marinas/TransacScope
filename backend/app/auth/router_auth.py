@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from app.schemas.users import UserCreate, UserRead, UserLogin
-from app.services.users_service import create_user, verify_user
+from .login import verify_user
+from .register import create_user
 from .security import create_access_token, get_current_user
 
 router = APIRouter(prefix="/api/auth")
