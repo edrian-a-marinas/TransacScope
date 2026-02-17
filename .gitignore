@@ -4,6 +4,8 @@ Step-by-step.txt
 I've Learned Today.txt
 roadmap.txt
 
+
+# backend folder
 backend/migrations/test_queries.sql
 backend/migrations/001_create_tables.sql
 backend/migrations/002_seed_admin.sql
@@ -12,7 +14,15 @@ backend/migrations/004_create_views.sql
 backend/.env
 backend/postman.txt
 
-# Python bytecode
 *.pyc
 __pycache__/
+
+
+# frontend folder (Vite)
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+frontend/.env.local
+frontend/.env.*.local
+frontend/*.log
 
