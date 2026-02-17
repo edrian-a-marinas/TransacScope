@@ -9,8 +9,9 @@
     "lint": "eslint .",
     "preview": "vite preview"
   },
-  "dependencies": { 
+  "dependencies": {
     "axios": "^1.13.5",
+    "jsx": "^0.9.89",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-router-dom": "^7.13.0"
