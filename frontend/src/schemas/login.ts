@@ -18,9 +18,5 @@ export function validateLogin(data: LoginForm): string[] {
     errors.push("Invalid email format");
   }
 
-  if (data.password.length < 8 || data.password.length > 72) {
-    errors.push("Password must be between 8 and 72 characters");
-  }
-
   return errors;
 }

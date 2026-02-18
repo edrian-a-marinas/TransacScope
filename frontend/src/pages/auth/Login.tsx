@@ -5,6 +5,7 @@ import { validateLogin } from "../../schemas/login"
 import type { LoginForm } from "../../schemas/login"
 import axios from "axios"
 import { AuthContext } from "../../contexts/AuthContext"
+import { Link } from "react-router-dom"
 
 export default function Login() {
   //const navigate = useNavigate()
@@ -99,6 +100,11 @@ export default function Login() {
           {loading ? "Logging in..." : "Login"}
         </button>
       </form>
+      {/* Link to Register */}
+      <p className="">
+        Don't have an account?{" "}
+        <Link to="/register">Create one</Link>
+      </p>
     </div>
   )
 }
