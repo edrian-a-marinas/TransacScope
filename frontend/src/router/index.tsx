@@ -6,7 +6,7 @@ import { Routes, Route, Navigate } from "react-router-dom"
 // Pages
 import Dashboard from "../pages/dashboard/Dashboard"
 import Login from "../pages/auth/Login"
-// import Register from "../pages/auth/Register"
+import Register from "../pages/auth/Register"
 // import Transactions from "../pages/dashboard/Transactions"
 // import Categories from "../pages/dashboard/Categories"
 // import Reports from "../pages/dashboard/Reports"
@@ -26,7 +26,7 @@ export default function Router() {
       <Route path="/" element={<RootController />} />
 
       <Route path="/login" element={isLoggedIn ? <Navigate to="/" /> : <Login />} /> 
-      {/* <Route path="/register" element={isLoggedIn ? <Navigate to="/" /> : <Register />} />  */}
+      <Route path="/register" element={isLoggedIn ? <Navigate to="/" /> : <Register />} />  
 
       {/* === Dashboard sub-pages (commented for now) === */}
       {/* <Route path="/transactions" element={<Transactions />} /> */}
