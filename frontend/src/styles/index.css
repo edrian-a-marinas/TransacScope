@@ -73,3 +73,43 @@ button:focus-visible {
     background-color: #f9f9f9;
   }
 }
+
+/*
+.server-topbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 40px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  font-size: 14px;
+  font-weight: 500;
+  z-index: 1000;
+
+  animation: slideDown 0.3s ease;
+}
+
+.server-topbar.disconnected {
+  background-color: #dc3545;
+  color: white;
+}
+
+.server-topbar.connected {
+  background-color: #198754;
+  color: white;
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(-100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+*/
