@@ -5,6 +5,9 @@ from datetime import datetime
 PhoneNumber = Annotated[str, StringConstraints(pattern=r'^09\d{9}$')]
 PasswordStr = Annotated[str, StringConstraints(min_length=8, max_length=72)]
 NameStr = Annotated[str, StringConstraints(min_length=1, max_length=50, pattern=r'^[A-Za-z\s\-]+$')]
+VerificationCodeStr = Annotated[str, StringConstraints(
+  pattern=r'^\d{6}$'
+)]
 
 
 class UserBase(BaseModel):
@@ -16,6 +19,7 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
   password: PasswordStr
+  verification_code: VerificationCodeStr
 
 class UserRead(UserBase):
   id: int
