@@ -23,6 +23,7 @@ export default function Register() {
   const [message, setMessage] = useState("")
   const [verificationCode, setVerificationCode] = useState("")
   const [countdown, setCountdown] = useState<number | null>(null)
+  const [codeSent, setCodeSent] = useState(false)
 
   useEffect(() => {
     if (countdown === null) return
@@ -43,22 +44,52 @@ export default function Register() {
     setForm({ ...form, [e.target.name]: e.target.value })
   }
 
-  const handleBackStep = () => setStep(1)
+  const handleBackStep = () => {
+    setStep(1)
+    setCodeSent(false)
+    setVerificationCode("")
+  }
 
-  const handleNextStep = (e: React.FormEvent) => {
+  // STEP 1: skip email existence, just validate form
+  const handleNextStep = async (e: React.FormEvent) => {
     e.preventDefault()
     setErrors([])
     setMessage("")
+    setLoading(true)
 
     const validationErrors = validateRegister(form)
     if (validationErrors.length > 0) {
       setErrors(validationErrors)
+      setLoading(false)
       return
     }
 
     setStep(2)
+    setLoading(false)
   }
 
+  // STEP 2: Send verification code
+  const handleSendCode = async () => {
+    setErrors([])
+    setMessage("")
+    setLoading(true)
+
+    try {
+      await axios.post("http://127.0.0.1:8000/api/auth/send-code", {
+        email: form.email,
+      })
+
+      setCodeSent(true)
+      setMessage("Verification code sent to your email.")
+
+    } catch {
+      setErrors(["Failed to send verification code."])
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Final verification
   const handleVerifyCode = async (e: React.FormEvent) => {
     e.preventDefault()
     setErrors([])
@@ -76,19 +107,27 @@ export default function Register() {
         verification_code: verificationCode,
       })
 
-      setMessage("Account created successfully! Redirecting to login...")
+      setMessage("Account created successfully. Redirecting...")
       setCountdown(3)
 
     } catch (err: any) {
       if (err.response?.data?.detail) {
         setErrors([err.response.data.detail])
       } else {
-        setErrors(["Verification failed. Try again later."])
+        setErrors(["Verification failed."])
       }
     } finally {
       setLoading(false)
     }
   }
+
+  // Only allow numeric 6-digit input
+  const handleCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/\D/g, "")
+    if (value.length <= 6) setVerificationCode(value)
+  }
+
+  const isCodeValid = verificationCode.length === 6
 
   function RequiredStar() {
     return <span>* </span>
@@ -103,13 +142,8 @@ export default function Register() {
         Let's get started with a secure account.
       </p>
 
-      {errors.length > 0 && (
-        <div>
-          {errors.map((err, i) => (
-            <p key={i}>{err}</p>
-          ))}
-        </div>
-      )}
+      {errors.length > 0 &&
+        errors.map((err, i) => <p key={i}>{err}</p>)}
 
       {message && <p>{message}</p>}
 
@@ -195,7 +229,7 @@ export default function Register() {
           </div>
 
           <button type="submit" disabled={loading}>
-            Next Step
+            {loading ? "Checking..." : "Next Step"}
           </button>
 
           <p>
@@ -210,19 +244,36 @@ export default function Register() {
             <label>Enter Verification Code <RequiredStar /></label>
             <input
               type="text"
-              name="verificationCode"
+              inputMode="numeric"
+              pattern="\d*"
               value={verificationCode}
-              onChange={(e) => setVerificationCode(e.target.value)}
-              placeholder="Enter code sent to your email"
-              required
+              onChange={handleCodeChange}
+              placeholder="1 2 3 4 5 6"
+              maxLength={6}
             />
+
+            {!codeSent && (
+              <button
+                type="button"
+                onClick={handleSendCode}
+                disabled={loading}
+              >
+                {loading ? "Sending..." : "Send Code"}
+              </button>
+            )}
+            
           </div>
+
+
 
           <button type="button" onClick={handleBackStep} disabled={loading}>
             Back
           </button>
 
-          <button type="submit" disabled={loading}>
+          <button
+            type="submit"
+            disabled={!isCodeValid || loading}
+          >
             {loading ? "Verifying..." : "Verify & Create Account"}
           </button>
         </form>
