@@ -12,7 +12,7 @@ class UserBase(BaseModel):
   first_name: NameStr
   middle_name: Optional[str] = None
   last_name: NameStr
-  phone_number: PhoneNumber
+  phone_number: Optional[PhoneNumber] = None
 
 class UserCreate(UserBase):
   password: PasswordStr
