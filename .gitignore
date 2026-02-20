@@ -3,12 +3,12 @@ DocumentationsFiles.txt
 Step-by-step.txt
 I've Learned Today.txt
 roadmap.txt
+postman.txt
 
 
 # backend folder
-
 backend/.env
-backend/postman.txt
+backend/migrations/test_queries.sql
 
 *.pyc
 __pycache__/
