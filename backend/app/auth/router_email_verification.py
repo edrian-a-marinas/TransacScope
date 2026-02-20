@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 import random
 import aiosmtplib
 from email.message import EmailMessage
+from email.utils import formataddr
 import os
 import bcrypt
 from dotenv import load_dotenv
@@ -21,12 +22,14 @@ SMTP_PORT = 587
 SMTP_USER = os.getenv("SMTP_USER")
 SMTP_PASS = os.getenv("SMTP_PASS")
 
+DISPLAY_NAME = "TransacScope"
+
 async def send_email(to_email: str, subject: str, body: str):
   message = EmailMessage()
-  message["From"] = SMTP_USER
+  message["From"] = formataddr((DISPLAY_NAME, SMTP_USER)) # type: ignore
   message["To"] = to_email
   message["Subject"] = subject
-  message.set_content(body)
+  message.set_content(body, subtype="html")
 
   try:
     await aiosmtplib.send(
@@ -40,22 +43,12 @@ async def send_email(to_email: str, subject: str, body: str):
   except Exception:
     raise HTTPException(status_code=500, detail="Failed to send email")
 
+
 def build_otp_email(code: str) -> tuple[str, str]:
-  subject = "Your OTP Code for TransacScope"
-  formatted_code = " ".join(code)
+  subject = "Verify Your Email"
+  formatted_code = f"{code[:3]} {code[3:]}"
+  body = create_body_html(formatted_code)
 
-  body = f"""
-Hi,
-
-Use the following OTP to complete your verification. Valid for 5 minutes.
-
-[ {formatted_code} ]
-
-Do not share this OTP with anyone.
-If you did not request this, you can ignore this email.
-
-© 2025 TransacScope, All rights reserved.
-"""
   return subject, body
 
 @router.post("/send-code")
@@ -92,3 +85,43 @@ async def send_code(data: EmailSchema):
 
   return {"detail": "If this email exists, a verification code has been sent."}
 
+
+def create_body_html(formatted_code):
+  body = f"""
+<html>
+  <body style="font-family: Arial, sans-serif; line-height:1.5; color: #111827; background-color: #F3F4F6; padding: 40px 0;">
+
+    <div style="max-width: 600px; margin: 0 auto; text-align: center; background-color: #FFFFFF; padding: 40px 20px; border-radius: 8px;">
+      <img src="../../../frontend/src/assets/vite.svg" alt="TransacScope Logo" width="50"/>
+
+      <h2 style="color: #1D4ED8; margin-top: 10px;">Verify Your Email</h2>
+
+      <div style="margin: 20px 0;">
+        <p>Use the following OTP to complete <br> 
+          your verification. <b>Valid for 5 minutes.</b></p>
+
+        <p style="
+          font-size: 32px;          
+          font-weight: bold; 
+          text-align: center; 
+          color: #1D4ED8; 
+          background-color: #E0F2FF;   
+          display: inline-block;        
+          padding: 15px 50px;           
+          border-radius: 6px;           
+          letter-spacing: 6px;           
+        ">
+          {formatted_code}
+        </p>
+
+        <p style="color: #6B7280; margin-top: 15px;">Do not share this OTP with anyone.<br>If you didn't request this, ignore this email.</p>
+      </div>
+
+      <p style="color: #A1A1A1; font-size: 12px; margin-top: 20px;">
+        © 2026 TransacScope, All rights reserved.
+      </p>
+    </div>
+  </body>
+</html>
+"""
+  return body
