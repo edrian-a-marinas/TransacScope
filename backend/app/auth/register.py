@@ -3,23 +3,29 @@ from app.schemas.users import UserCreate
 from fastapi import HTTPException
 import asyncpg
 from datetime import datetime
+import bcrypt
 
 
 # ────────── OTP VERIFICATION ──────────
 async def verify_otp(email: str, code: str, conn):
   query = """
-  SELECT id, expires_at, is_used
+  SELECT id, code, expires_at, is_used
   FROM email_verifications
-  WHERE email = $1 AND code = $2
+  WHERE email = $1
   ORDER BY id DESC
   LIMIT 1;
   """
-  verification = await conn.fetchrow(query, email, code)
+  verification = await conn.fetchrow(query, email)
 
   if not verification:
     raise HTTPException(status_code=400, detail="Invalid verification code.")
+
+  if not bcrypt.checkpw(code.encode(), verification["code"].encode()):
+    raise HTTPException(status_code=400, detail="Invalid verification code.")
+
   if verification["is_used"]:
     raise HTTPException(status_code=400, detail="Verification code already used.")
+
   if verification["expires_at"] < datetime.utcnow():
     raise HTTPException(status_code=400, detail="Verification code expired.")
 
