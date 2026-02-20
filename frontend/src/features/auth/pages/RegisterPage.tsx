@@ -7,6 +7,22 @@ import { validateRegister } from "../schemas/register"
 import type { RegisterForm } from "../schemas/register"
 
 export default function Register() {
+
+  const maskEmail = (email: string) => {
+    const [name, domain] = email.split("@")
+    if (!name || !domain) return email
+
+    if (name.length <= 2) {
+      return name[0] + "*@" + domain
+    }
+
+    const firstChar = name[0]
+    const lastChar = name[name.length - 1]
+    const maskedPart = "*".repeat(name.length - 2)
+
+    return `${firstChar}${maskedPart}${lastChar}@${domain}`
+  }
+
   const navigate = useNavigate()
 
   const [step, setStep] = useState<1 | 2>(1)
@@ -23,7 +39,16 @@ export default function Register() {
   const [message, setMessage] = useState("")
   const [verificationCode, setVerificationCode] = useState("")
   const [countdown, setCountdown] = useState<number | null>(null)
-  const [codeSent, setCodeSent] = useState(false)
+  const [sendCooldown, setSendCooldown] = useState(0)  // seconds remaining
+  const [sendCount, setSendCount] = useState(0)
+  const MAX_SENDS = 3
+  const COOLDOWN_TIME = 60  // 60 seconds cooldown
+
+  useEffect(() => {
+    if (sendCooldown <= 0) return
+    const timer = setTimeout(() => setSendCooldown(prev => prev - 1), 1000)
+    return () => clearTimeout(timer)
+  }, [sendCooldown])
 
   useEffect(() => {
     if (countdown === null) return
@@ -46,11 +71,10 @@ export default function Register() {
 
   const handleBackStep = () => {
     setStep(1)
-    setCodeSent(false)
     setVerificationCode("")
+    setMessage("")
   }
 
-  // STEP 1: skip email existence, just validate form
   const handleNextStep = async (e: React.FormEvent) => {
     e.preventDefault()
     setErrors([])
@@ -70,6 +94,7 @@ export default function Register() {
 
   // STEP 2: Send verification code
   const handleSendCode = async () => {
+    if (sendCooldown > 0 || sendCount >= MAX_SENDS) return
     setErrors([])
     setMessage("")
     setLoading(true)
@@ -79,8 +104,9 @@ export default function Register() {
         email: form.email,
       })
 
-      setCodeSent(true)
       setMessage("Verification code sent to your email.")
+      setSendCooldown(COOLDOWN_TIME)
+      setSendCount(prev => prev + 1)
 
     } catch {
       setErrors(["Failed to send verification code."])
@@ -88,6 +114,7 @@ export default function Register() {
       setLoading(false)
     }
   }
+
 
   // Final verification
   const handleVerifyCode = async (e: React.FormEvent) => {
@@ -241,7 +268,9 @@ export default function Register() {
       {step === 2 && (
         <form onSubmit={handleVerifyCode}>
           <div>
-            <label>Enter Verification Code <RequiredStar /></label>
+            <p>
+              Enter the OTP sent to <strong>{maskEmail(form.email)}</strong>
+            </p>
             <input
               type="text"
               inputMode="numeric"
@@ -252,19 +281,23 @@ export default function Register() {
               maxLength={6}
             />
 
-            {!codeSent && (
-              <button
-                type="button"
-                onClick={handleSendCode}
-                disabled={loading}
-              >
-                {loading ? "Sending..." : "Send Code"}
-              </button>
+            <button
+              type="button"
+              onClick={handleSendCode}
+              disabled={loading || sendCooldown > 0 || sendCount >= MAX_SENDS}
+            >
+              {loading
+                ? "Sending..."
+                : sendCooldown > 0
+                ? `Resend in ${sendCooldown}s`
+                : sendCount >= MAX_SENDS
+                ? "Send Limit Reached"
+                : "Send Code"}
+            </button>
+            {sendCount >= MAX_SENDS && (
+              <p>You have reached the maximum number of verification attempts. Try again later.</p>
             )}
-            
           </div>
-
-
 
           <button type="button" onClick={handleBackStep} disabled={loading}>
             Back
@@ -278,6 +311,7 @@ export default function Register() {
           </button>
         </form>
       )}
+
     </div>
   )
 }
