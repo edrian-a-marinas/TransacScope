@@ -7,7 +7,7 @@ import { AuthContext } from "../AuthContext"
 import { Link } from "react-router-dom"
 
 export default function Login() {
-  const { setLoggedIn } = useContext(AuthContext)
+  const { setLoggedIn, setUser } = useContext(AuthContext)
 
   const [form, setForm] = useState<LoginForm>({ email: "", password: "" })
   const [errors, setErrors] = useState<string[]>([])
@@ -37,14 +37,17 @@ export default function Login() {
         form
       )
 
-      const { access_token, token_type } = response.data
+      const { access_token, token_type, user } = response.data
 
       // Store token
       localStorage.setItem("access_token", access_token)
       localStorage.setItem("token_type", token_type)
 
+
       // Update global auth state
       setLoggedIn(true)
+      setUser(user)
+     
 
     } catch (err: any) {
       if (err.response?.status === 401) {
