@@ -3,284 +3,303 @@
 from db.connection import get_pool
 from app.utils import helpers
 import json
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 # READ: all transactions (optionally by user)
 async def get_transactions(current_user_id: int, role):
-  pool = await get_pool()
-  async with pool.acquire() as conn:
+  try:
+    pool = await get_pool()
+    async with pool.acquire() as conn:
 
-    if role == 'admin':
-      rows = await conn.fetch(
-        """
-        SELECT t.*, c.name AS category_name
-        FROM transactions t
-        JOIN categories c ON t.category_id = c.id
-        WHERE t.deleted_at IS NULL
-        ORDER BY t.created_at DESC
-        """
-      )
+      if role == 'admin':
+        rows = await conn.fetch(
+          """
+          SELECT t.*, c.name AS category_name
+          FROM transactions t
+          JOIN categories c ON t.category_id = c.id
+          WHERE t.deleted_at IS NULL
+          ORDER BY t.created_at DESC
+          """
+        )
 
-    else:
-      rows = await conn.fetch(
-        """
-        SELECT t.*, c.name AS category_name
-        FROM transactions t
-        JOIN categories c ON t.category_id = c.id
-        WHERE t.user_id = $1
-          AND t.deleted_at IS NULL
-        ORDER BY t.created_at DESC
-        """,
-        current_user_id
-      )
+      else:
+        rows = await conn.fetch(
+          """
+          SELECT t.*, c.name AS category_name
+          FROM transactions t
+          JOIN categories c ON t.category_id = c.id
+          WHERE t.user_id = $1
+            AND t.deleted_at IS NULL
+          ORDER BY t.created_at DESC
+          """,
+          current_user_id
+        )
 
-    return [dict(row) for row in rows]
-  
-  
+      return [dict(row) for row in rows]
+
+  except Exception as e:
+    logger.exception("Error fetching transactions")
+    raise
+
+
 async def get_transactions_history(current_user_id, role):
-  pool = await get_pool()
-  async with pool.acquire() as conn:
-    if role == "admin":
-      rows = await conn.fetch(
-        """
-        SELECT
-          id,
-          entity_id,
-          user_id,
-          action,
-          action_taken_at,
-          old_data->>'description' AS old_description,
-          (old_data->>'transaction_date')::date AS old_transaction_date
-        FROM log_history
-        WHERE entity_type = 'transaction'
-        ORDER BY action_taken_at DESC
-        """
-      )
-    else:
-      rows = await conn.fetch(
-        """
-        SELECT
-          id,
-          entity_id,
-          user_id,
-          action,
-          action_taken_at,
-          old_data->>'description' AS old_description,
-          (old_data->>'transaction_date')::date AS old_transaction_date
-        FROM log_history
-        WHERE entity_type = 'transaction'
-          AND user_id = $1
-        ORDER BY action_taken_at DESC
-        """,
-        current_user_id
-      )
+  try:
+    pool = await get_pool()
+    async with pool.acquire() as conn:
 
-    result = [
-      helpers.format_action_taken_at(dict(row))
-      for row in rows
-    ]
-  
-    return result
+      if role == "admin":
+        rows = await conn.fetch(
+          """
+          SELECT
+            id,
+            entity_id,
+            user_id,
+            action,
+            action_taken_at,
+            old_data->>'description' AS old_description,
+            (old_data->>'transaction_date')::date AS old_transaction_date
+          FROM log_history
+          WHERE entity_type = 'transaction'
+          ORDER BY action_taken_at DESC
+          """
+        )
+      else:
+        rows = await conn.fetch(
+          """
+          SELECT
+            id,
+            entity_id,
+            user_id,
+            action,
+            action_taken_at,
+            old_data->>'description' AS old_description,
+            (old_data->>'transaction_date')::date AS old_transaction_date
+          FROM log_history
+          WHERE entity_type = 'transaction'
+            AND user_id = $1
+          ORDER BY action_taken_at DESC
+          """,
+          current_user_id
+        )
+
+      result = [
+        helpers.format_action_taken_at(dict(row))
+        for row in rows
+      ]
+
+      return result
+
+  except Exception:
+    logger.exception("Error fetching transaction history")
+    raise
 
 
 # READ: single transaction
 async def get_transaction_by_id(tx_id: int, current_user_id: int, role):
-  pool = await get_pool()
-  async with pool.acquire() as conn:
+  try:
+    pool = await get_pool()
+    async with pool.acquire() as conn:
 
-    if role == "admin":
-      row = await conn.fetchrow(
-        """
-        SELECT *
-        FROM transactions
-        WHERE id = $1
-          AND deleted_at IS NULL
-        """,
-        tx_id
-      )
+      if role == "admin":
+        row = await conn.fetchrow(
+          """
+          SELECT *
+          FROM transactions
+          WHERE id = $1
+            AND deleted_at IS NULL
+          """,
+          tx_id
+        )
 
-    else:
-      row = await conn.fetchrow(
-        """
-        SELECT *
-        FROM transactions
-        WHERE id = $1
-          AND user_id = $2
-          AND deleted_at IS NULL
-        """,
-        tx_id,
-        current_user_id
-      )
+      else:
+        row = await conn.fetchrow(
+          """
+          SELECT *
+          FROM transactions
+          WHERE id = $1
+            AND user_id = $2
+            AND deleted_at IS NULL
+          """,
+          tx_id,
+          current_user_id
+        )
 
-    return dict(row) if row else None
+      return dict(row) if row else None
 
-
+  except Exception:
+    logger.exception(f"Error fetching transaction by id: {tx_id}")
+    raise
 
 
 # CREATE
 async def create_transaction(tx, current_user_id: int):
-  pool = await get_pool()
-  async with pool.acquire() as conn:
-    inserted = await conn.fetchrow(
-      """
-      INSERT INTO transactions (
-          amount, category_id, description, transaction_date, user_id, transaction_type
-      )
-      VALUES ($1, $2, $3, $4, $5, $6)
-      RETURNING id
-      """,
-      tx.amount,
-      tx.category_id,
-      tx.description,
-      tx.transaction_date,
-      current_user_id,
-      tx.transaction_type
-    )
+  try:
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+      async with conn.transaction():
 
-    row = await conn.fetchrow(
-      """
-      SELECT t.id, t.amount, t.category_id, t.description, t.transaction_date,
-             t.user_id, t.transaction_type, c.name AS category_name
-      FROM transactions t
-      JOIN categories c ON c.id = t.category_id
-      WHERE t.id = $1
-      """,
-      inserted["id"]
-    )
+        inserted = await conn.fetchrow(
+          """
+          INSERT INTO transactions (
+              amount, category_id, description, transaction_date, user_id, transaction_type
+          )
+          VALUES ($1, $2, $3, $4, $5, $6)
+          RETURNING id
+          """,
+          tx.amount,
+          tx.category_id,
+          tx.description,
+          tx.transaction_date,
+          current_user_id,
+          tx.transaction_type
+        )
 
-    return dict(row)
+        row = await conn.fetchrow(
+          """
+          SELECT t.id, t.amount, t.category_id, t.description, t.transaction_date,
+                 t.user_id, t.transaction_type, c.name AS category_name
+          FROM transactions t
+          JOIN categories c ON c.id = t.category_id
+          WHERE t.id = $1
+          """,
+          inserted["id"]
+        )
+
+        return dict(row)
+
+  except Exception:
+    logger.exception("Error creating transaction")
+    raise
 
 
 # UPDATE (partial update supported)
 async def update_transaction(tx_id: int, tx, current_user_id: int, role):
-  pool = await get_pool()
-  async with pool.acquire() as conn:
+  try:
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+      async with conn.transaction():
 
-    # Ownership check
-    old = await conn.fetchrow(
-      """
-      SELECT *
-      FROM transactions
-      WHERE id = $1
-        AND deleted_at IS NULL
-      """,
-      tx_id
-    )
-    if not old:
-      return None
+        old = await conn.fetchrow(
+          """
+          SELECT *
+          FROM transactions
+          WHERE id = $1
+            AND deleted_at IS NULL
+          """,
+          tx_id
+        )
 
-    if role != "admin" and old["user_id"] != current_user_id:
-      return None
+        if not old:
+          return None
 
-    updated = await conn.fetchrow(
-      """
-      UPDATE transactions
-      SET
-        description = COALESCE($1, description),
-        transaction_date = COALESCE($2, transaction_date)
-      WHERE id = $3
-      RETURNING *
-      """,
-      tx.description,
-      tx.transaction_date,
-      tx_id
-    )
+        if role != "admin" and old["user_id"] != current_user_id:
+          return None
 
-    await conn.execute(
-      """
-      INSERT INTO log_history (
-        entity_type,
-        entity_id,
-        user_id,
-        action,
-        old_data,
-        action_taken_at
-      )
-      VALUES ('transaction', $1, $2, 'updated', $3::jsonb, now())
-      """,
-      tx_id,
-      current_user_id,
+        updated = await conn.fetchrow(
+          """
+          UPDATE transactions
+          SET
+            description = COALESCE($1, description),
+            transaction_date = COALESCE($2, transaction_date)
+          WHERE id = $3
+          RETURNING *
+          """,
+          tx.description,
+          tx.transaction_date,
+          tx_id
+        )
 
-      json.dumps({
-        "description": old["description"],
-        "transaction_date": str(old["transaction_date"]) if old["transaction_date"] else None
-      })
-    )
+        await conn.execute(
+          """
+          INSERT INTO log_history (
+            entity_type,
+            entity_id,
+            user_id,
+            action,
+            old_data,
+            action_taken_at
+          )
+          VALUES ('transaction', $1, $2, 'updated', $3::jsonb, now())
+          """,
+          tx_id,
+          current_user_id,
+          json.dumps({
+            "description": old["description"],
+            "transaction_date": str(old["transaction_date"]) if old["transaction_date"] else None
+          })
+        )
 
-    category_name = await conn.fetchval(
-      "SELECT name FROM categories WHERE id = $1",
-      updated['category_id']
-    )
+        category_name = await conn.fetchval(
+          "SELECT name FROM categories WHERE id = $1",
+          updated['category_id']
+        )
 
-    return dict(updated, category_name=category_name)
+        return dict(updated, category_name=category_name)
 
-
-
-
+  except Exception:
+    logger.exception(f"Error updating transaction id: {tx_id}")
+    raise
 
 
 async def delete_transaction(tx_id: int, current_user_id: int, role):
-  pool = await get_pool()
-  async with pool.acquire() as conn:
-    
-    if role != "admin":
-      return None
+  try:
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+      async with conn.transaction():
 
-    tx = await conn.fetchrow(
-      """
-      SELECT *
-      FROM transactions
-      WHERE id = $1
-        AND deleted_at IS NULL
-      """,
-      tx_id
-    )
+        if role != "admin":
+          return None
 
-    if not tx:
-      return None
+        tx = await conn.fetchrow(
+          """
+          SELECT *
+          FROM transactions
+          WHERE id = $1
+            AND deleted_at IS NULL
+          """,
+          tx_id
+        )
 
-    await conn.execute(
-      """
-      UPDATE transactions
-      SET deleted_at = now()
-      WHERE id = $1
-      """,
-      tx_id
-    )
+        if not tx:
+          return None
 
-    await conn.execute(
-      """
-      INSERT INTO log_history (
-        entity_type,
-        entity_id,
-        user_id,
-        action,
-        old_data,
-        action_taken_at
-      )
-      VALUES ('transaction', $1, $2, 'deleted', $3::jsonb, now())
-      """,
-      tx_id,
-      current_user_id,
-      json.dumps({
-        "description": tx["description"],
-        "transaction_date": str(tx["transaction_date"]) if tx["transaction_date"] else None,
-        "category_id": tx["category_id"],
-        "amount": str(tx["amount"]),
-        "transaction_type": tx["transaction_type"]
-      })
-    )
+        await conn.execute(
+          """
+          UPDATE transactions
+          SET deleted_at = now()
+          WHERE id = $1
+          """,
+          tx_id
+        )
 
-    return True
+        await conn.execute(
+          """
+          INSERT INTO log_history (
+            entity_type,
+            entity_id,
+            user_id,
+            action,
+            old_data,
+            action_taken_at
+          )
+          VALUES ('transaction', $1, $2, 'deleted', $3::jsonb, now())
+          """,
+          tx_id,
+          current_user_id,
+          json.dumps({
+            "description": tx["description"],
+            "transaction_date": str(tx["transaction_date"]) if tx["transaction_date"] else None,
+            "category_id": tx["category_id"],
+            "amount": str(tx["amount"]),
+            "transaction_type": tx["transaction_type"]
+          })
+        )
 
+        return True
 
-
-
-
-
-# ------------ NOTES ---------------
-# PUT
-# COALESCE ensures that if a field is not provided, it keeps its current value.
-
-
-
-# return [dict(row) for row in rows] = Converts each database row into a normal Python dict and returns them as a list
+  except Exception:
+    logger.exception(f"Error deleting transaction id: {tx_id}")
+    raise
