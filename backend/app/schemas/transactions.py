@@ -35,6 +35,7 @@ class TransactionUpdate(BaseModel):
 class TransactionRead(TransactionOut):
   category_name: str 
   user_id: int       
+  created_at: datetime 
 
 
 class TransactionHistoryRead(BaseModel):
