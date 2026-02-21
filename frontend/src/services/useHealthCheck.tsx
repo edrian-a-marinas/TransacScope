@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from "react"
 import type { ReactNode } from 'react'
+import api from "./apiClient"
 
 function scheduleNextCheck(checkServerHealth: () => void, timeoutRef: React.MutableRefObject<ReturnType<typeof setTimeout> | null>, delay: number) {
   if (timeoutRef.current) clearTimeout(timeoutRef.current);
@@ -14,7 +15,7 @@ export function useServerCheck() {
   useEffect(() => {
     async function checkServerHealth() {
       try {
-        await fetch("http://127.0.0.1:8000/health/");
+        await api.get("health/");
 
         if (serverStatus !== 'connected') {
           setServerStatus('connected');
