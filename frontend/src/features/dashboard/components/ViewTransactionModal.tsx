@@ -51,21 +51,25 @@ export default function ViewTransaction({ onClose }: OnCloseProps) {
   }, [token, tokenType]);
 
   // Ensure the created_at field is valid and formatted properly
-  const formatDate = (date: string | null) => {
-    if (!date) return "No Date";
-    const parsedDate = new Date(date);
+const formatDate = (date: string | null) => {
+  if (!date) return "No Date";
+  const parsedDate = new Date(date);
 
-    if (isNaN(parsedDate.getTime())) return "Invalid Date";
+  if (isNaN(parsedDate.getTime())) return "Invalid Date";
 
-    const formattedDate = parsedDate.toLocaleDateString("en-US");
-    const formattedTime = parsedDate.toLocaleTimeString("en-US", {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: true,
-    });
+  // Get the components of the date and time
+  const year = parsedDate.getFullYear();
+  const month = String(parsedDate.getMonth() + 1).padStart(2, '0'); // Months are 0-indexed
+  const day = String(parsedDate.getDate()).padStart(2, '0');
+  const hours = parsedDate.getHours();
+  const minutes = String(parsedDate.getMinutes()).padStart(2, '0');
+  const isAM = hours < 12;
+  const formattedHours = hours % 12 || 12; // Convert to 12-hour format
+  const amPm = isAM ? "AM" : "PM";
 
-    return `${formattedDate}, ${formattedTime}`;
-  };
+  // Format the date as 'YYYY-MM-DD, HH:mm AM/PM'
+  return `${year}-${month}-${day}, ${formattedHours}:${minutes} ${amPm}`;
+};
 
 
   const getCategoryName = (id: number) => {
@@ -144,14 +148,16 @@ export default function ViewTransaction({ onClose }: OnCloseProps) {
             }}
           >
             <thead>
-              <th style={thStyle}>ID</th>
-              {userRole === 1 && <th style={thStyle}>User ID</th>}
-              <th style={thStyle}>Category</th>
-              <th style={thStyle}>Amount</th>
-              <th style={thStyle}>Type</th>
-              <th style={thStyle}>Description</th>
-              <th style={thStyle}>Transaction Date</th>
-              <th style={thStyle}>Created At</th>
+              <tr >
+                <th style={thStyle}>ID</th>
+                {userRole === 1 && <th style={thStyle}>User ID</th>}
+                <th style={thStyle}>Category</th>
+                <th style={thStyle}>Amount</th>
+                <th style={thStyle}>Type</th>
+                <th style={thStyle}>Description</th>
+                <th style={thStyle}>Transaction Date</th>
+                <th style={thStyle}>Created At</th>
+              </tr>
             </thead>
             <tbody>
               {filteredTransactions.map((tx) => (
