@@ -14,7 +14,7 @@ async def get_transactions(current_user_id: int, role):
     pool = await get_pool()
     async with pool.acquire() as conn:
 
-      if role == 'admin':
+      if role == 'admin' or role == 1:
         rows = await conn.fetch(
           """
           SELECT t.*, c.name AS category_name
@@ -134,7 +134,6 @@ async def get_transaction_by_id(tx_id: int, current_user_id: int, role):
     raise
 
 
-# CREATE
 # CREATE
 async def create_transaction(tx, current_user_id: int):
   try:

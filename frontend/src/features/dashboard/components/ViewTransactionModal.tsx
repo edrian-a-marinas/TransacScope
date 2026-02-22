@@ -2,8 +2,7 @@ import { useEffect, useState, useContext } from "react";
 import api from "../../../services/apiClient";
 import { AuthContext } from "../../auth/AuthContext";
 
-import type { OnCloseProps, Category, ReadTransaction} from "../schemas/transaction";
-
+import type { OnCloseProps, Category, ReadTransaction } from "../schemas/transaction";
 
 export default function ViewTransaction({ onClose }: OnCloseProps) {
   const { user } = useContext(AuthContext);
@@ -12,6 +11,7 @@ export default function ViewTransaction({ onClose }: OnCloseProps) {
   const [transactions, setTransactions] = useState<ReadTransaction[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
+  const [viewMode, setViewMode] = useState<"all" | "own">("all"); // New state for view mode
 
   const token = localStorage.getItem("access_token");
   const tokenType = localStorage.getItem("token_type");
@@ -21,6 +21,7 @@ export default function ViewTransaction({ onClose }: OnCloseProps) {
       try {
         if (!token || !tokenType) return;
 
+        // API call to fetch all transactions
         const [transRes, catRes] = await Promise.all([
           api.get("api/transactions/", {
             headers: { Authorization: `${tokenType} ${token}` },
@@ -40,7 +41,7 @@ export default function ViewTransaction({ onClose }: OnCloseProps) {
         setTransactions(filteredTrans);
         setCategories(catRes.data);
       } catch (err) {
-
+        // Handle error
       } finally {
         setLoading(false);
       }
@@ -49,22 +50,14 @@ export default function ViewTransaction({ onClose }: OnCloseProps) {
     fetchData();
   }, [token, tokenType]);
 
-  const getCategoryName = (id: number) => {
-    const found = categories.find((c) => c.id === id);
-    return found ? found.name : "Unknown";
-  };
-
   // Ensure the created_at field is valid and formatted properly
   const formatDate = (date: string | null) => {
-    if (!date) return "No Date"; // Fallback if no date is provided
-    const parsedDate = new Date(date); // Parse the timestamp into a Date object
+    if (!date) return "No Date";
+    const parsedDate = new Date(date);
 
-    if (isNaN(parsedDate.getTime())) return "Invalid Date"; // Check for invalid date
+    if (isNaN(parsedDate.getTime())) return "Invalid Date";
 
-    // Format date (MM/DD/YYYY)
     const formattedDate = parsedDate.toLocaleDateString("en-US");
-
-    // Format time (hh:mm AM/PM without seconds)
     const formattedTime = parsedDate.toLocaleTimeString("en-US", {
       hour: "2-digit",
       minute: "2-digit",
@@ -74,6 +67,14 @@ export default function ViewTransaction({ onClose }: OnCloseProps) {
     return `${formattedDate}, ${formattedTime}`;
   };
 
+
+  const getCategoryName = (id: number) => {
+    const found = categories.find((c) => c.id === id);
+    return found ? found.name : "Unknown";
+  };
+
+  // Filter transactions based on the selected view mode
+  const filteredTransactions = viewMode === "all" ? transactions : transactions.filter(tx => tx.user_id === user?.id);
 
   return (
     <div
@@ -121,11 +122,19 @@ export default function ViewTransaction({ onClose }: OnCloseProps) {
 
         <h2 style={{ textAlign: "center" }}>View Transactions</h2>
 
+        {/* Add role-based dropdown */}
+        {userRole === 1 && (
+          <select onChange={(e) => setViewMode(e.target.value as "all" | "own")}>
+            <option value="all">Show All</option>
+            <option value="own">Show Your Own View Only</option>
+          </select>
+        )}
+
         {loading && <p>Loading...</p>}
 
-        {!loading && transactions.length === 0 && <p>No transactions found.</p>}
+        {!loading && filteredTransactions.length === 0 && <p>No transactions found.</p>}
 
-        {!loading && transactions.length > 0 && (
+        {!loading && filteredTransactions.length > 0 && (
           <table
             style={{
               width: "100%",
@@ -142,10 +151,10 @@ export default function ViewTransaction({ onClose }: OnCloseProps) {
               <th style={thStyle}>Type</th>
               <th style={thStyle}>Description</th>
               <th style={thStyle}>Transaction Date</th>
-              <th style={thStyle}>Created At</th> {/* Added Created At column */}
+              <th style={thStyle}>Created At</th>
             </thead>
             <tbody>
-              {transactions.map((tx) => (
+              {filteredTransactions.map((tx) => (
                 <tr key={tx.id}>
                   <td style={tdStyle}>{tx.id}</td>
                   {userRole === 1 && <td style={tdStyle}>{tx.user_id}</td>}
@@ -154,7 +163,7 @@ export default function ViewTransaction({ onClose }: OnCloseProps) {
                   <td style={tdStyle}>{tx.transaction_type}</td>
                   <td style={tdStyle}>{tx.description}</td>
                   <td style={tdStyle}>{tx.transaction_date}</td>
-                  <td style={tdStyle}>{formatDate(tx.created_at)}</td> {/* Format Created At */}
+                  <td style={tdStyle}>{formatDate(tx.created_at)}</td>
                 </tr>
               ))}
             </tbody>
