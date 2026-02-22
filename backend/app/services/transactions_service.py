@@ -92,12 +92,12 @@ async def get_transactions_history(current_user_id, role):
         rows = await conn.fetch(
           """
           SELECT
-              id,                          
-              user_id,                     
-              entity_id AS transac_id,     
+              id,
+              user_id,
+              entity_id,
               entity_type,
               action,
-              to_char(action_taken_at, 'YYYY-MM-DD HH24:MI') AS action_taken_at,
+              action_taken_at,  -- do NOT use to_char
               old_data->>'description' AS old_description,
               new_data->>'description' AS new_description,
               (old_data->>'transaction_date')::date AS old_transaction_date,
@@ -111,16 +111,19 @@ async def get_transactions_history(current_user_id, role):
         rows = await conn.fetch(
           """
           SELECT
-              id,                         
-              user_id,                     
-              entity_id AS transac_id,     
+              id,
+              user_id,
+              entity_id,
+              entity_type,
               action,
-              to_char(action_taken_at, 'YYYY-MM-DD HH24:MI') AS action_taken_at,
+              action_taken_at,
               old_data->>'description' AS old_description,
-              (old_data->>'transaction_date')::date AS old_transaction_date
+              new_data->>'description' AS new_description,
+              (old_data->>'transaction_date')::date AS old_transaction_date,
+              (new_data->>'transaction_date')::date AS new_transaction_date
           FROM log_history
           WHERE entity_type = 'transaction'
-            AND user_id = $1               -- Filter by user_id from the provided parameter
+            AND user_id = $1
           ORDER BY action_taken_at DESC
           """,
           current_user_id
