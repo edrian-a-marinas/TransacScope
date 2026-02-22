@@ -2,7 +2,7 @@
 import { useState, useContext } from "react"
 import { AuthContext } from "../../auth/AuthContext"
 import Transactions from "./TransactionPage"
-
+import Reports from "./ReportPage"
 
 export default function DashboardPage() {
   const { logout, user } = useContext(AuthContext)
@@ -13,7 +13,7 @@ export default function DashboardPage() {
   const userRole = user!.role_id
 
   const [selectedMenu, setSelectedMenu] = useState<
-    "dashboard" | "transactions" | "reports" | "users"
+    "dashboard" | "transactions" | "reports" | "users" | "logHistory"
   >("dashboard"
   )
 
@@ -59,7 +59,7 @@ export default function DashboardPage() {
               <button onClick={() => handleMenuClick("reports")}>Reports</button>
             </li>
             <li>
-              <button onClick={() => handleMenuClick("reports")}>Log History</button>
+              <button onClick={() => handleMenuClick("logHistory")}>Log History</button>
             </li>
 
             {userRole === 1 && (
@@ -82,7 +82,8 @@ export default function DashboardPage() {
           </>
         )}
         {selectedMenu === "transactions" && <Transactions /> }
-        {selectedMenu === "reports" && <p>Reports page placeholder</p>}
+        {selectedMenu === "reports" && <Reports />}
+        {selectedMenu === "logHistory" && <p>Log History placeholder</p>}
         {selectedMenu === "users" && userID === 1 && <p>Users management placeholder</p>}
       </main>
     </div>
