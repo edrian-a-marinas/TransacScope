@@ -20,10 +20,22 @@ router = APIRouter(
 
 
 @router.get("/", response_model=List[TransactionRead])
-async def list_transactions(user_data: Tuple[int, str] = Depends(get_user_id_and_role)):
+async def get_transactions(user_data: Tuple[int, str] = Depends(get_user_id_and_role)):
 
   CURRENT_USER_ID, role = user_data
   rows = await transactions_service.get_transactions(CURRENT_USER_ID, role)
+  
+  return rows
+
+@router.get("/{transaction_id}", response_model=TransactionRead)
+async def get_transactions_specific_id(transaction_id: int, user_data: Tuple[int, str] = Depends(get_user_id_and_role)):
+
+  CURRENT_USER_ID, role = user_data
+
+  rows = await transactions_service.get_transaction_by_id(transaction_id, CURRENT_USER_ID, role)
+  
+  if not rows:
+    raise HTTPException(status_code=404, detail="Transaction not found")
   
   return rows
 

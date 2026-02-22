@@ -44,6 +44,44 @@ async def get_transactions(current_user_id: int, role):
     logger.exception("Error fetching transactions")
     raise
 
+# READ: single transaction
+async def get_transaction_by_id(tx_id: int, current_user_id: int, role):
+  try:
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+
+      if role == "admin" or role == 1:
+        row = await conn.fetchrow(
+          """
+          SELECT t.*, c.name AS category_name
+          FROM transactions t
+          JOIN categories c ON t.category_id = c.id
+          WHERE t.id = $1
+            AND t.deleted_at IS NULL
+          """,
+          tx_id
+        )
+
+      else:
+        row = await conn.fetchrow(
+          """
+          SELECT t.*, c.name AS category_name
+          FROM transactions t
+          JOIN categories c ON t.category_id = c.id
+          WHERE t.id = $1
+            AND t.user_id = $2
+            AND t.deleted_at IS NULL
+          """,
+          tx_id,
+          current_user_id
+        )
+
+      return dict(row) if row else None
+
+  except Exception:
+    logger.exception(f"Error fetching transaction by id: {tx_id}")
+    raise
+
 
 async def get_transactions_history(current_user_id, role):
   try:
@@ -94,43 +132,6 @@ async def get_transactions_history(current_user_id, role):
 
   except Exception:
     logger.exception("Error fetching transaction history")
-    raise
-
-
-# READ: single transaction
-async def get_transaction_by_id(tx_id: int, current_user_id: int, role):
-  try:
-    pool = await get_pool()
-    async with pool.acquire() as conn:
-
-      if role == "admin":
-        row = await conn.fetchrow(
-          """
-          SELECT *
-          FROM transactions
-          WHERE id = $1
-            AND deleted_at IS NULL
-          """,
-          tx_id
-        )
-
-      else:
-        row = await conn.fetchrow(
-          """
-          SELECT *
-          FROM transactions
-          WHERE id = $1
-            AND user_id = $2
-            AND deleted_at IS NULL
-          """,
-          tx_id,
-          current_user_id
-        )
-
-      return dict(row) if row else None
-
-  except Exception:
-    logger.exception(f"Error fetching transaction by id: {tx_id}")
     raise
 
 
