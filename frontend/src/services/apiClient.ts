@@ -12,13 +12,25 @@ const api = axios.create({
 })
 
 api.interceptors.response.use(
+  
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    if (error.response?.status === 420) {
       logoutCallback()
     }
     return Promise.reject(error)
   }
 )
+
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem("access_token");
+  const tokenType = localStorage.getItem("token_type");
+
+  if (token && tokenType) {
+    config.headers.Authorization = `${tokenType} ${token}`;
+  }
+
+  return config;
+});
 
 export default api
