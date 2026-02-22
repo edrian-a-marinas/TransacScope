@@ -88,17 +88,20 @@ async def get_transactions_history(current_user_id, role):
     pool = await get_pool()
     async with pool.acquire() as conn:
 
-      if role == "admin":
+      if role == "admin" or role == 1:
         rows = await conn.fetch(
           """
           SELECT
-            id,
-            entity_id,
-            user_id,
-            action,
-            action_taken_at,
-            old_data->>'description' AS old_description,
-            (old_data->>'transaction_date')::date AS old_transaction_date
+              id,                          
+              user_id,                     
+              entity_id AS transac_id,     
+              entity_type,
+              action,
+              to_char(action_taken_at, 'YYYY-MM-DD HH24:MI') AS action_taken_at,
+              old_data->>'description' AS old_description,
+              new_data->>'description' AS new_description,
+              (old_data->>'transaction_date')::date AS old_transaction_date,
+              (new_data->>'transaction_date')::date AS new_transaction_date
           FROM log_history
           WHERE entity_type = 'transaction'
           ORDER BY action_taken_at DESC
@@ -108,16 +111,16 @@ async def get_transactions_history(current_user_id, role):
         rows = await conn.fetch(
           """
           SELECT
-            id,
-            entity_id,
-            user_id,
-            action,
-            action_taken_at,
-            old_data->>'description' AS old_description,
-            (old_data->>'transaction_date')::date AS old_transaction_date
+              id,                         
+              user_id,                     
+              entity_id AS transac_id,     
+              action,
+              to_char(action_taken_at, 'YYYY-MM-DD HH24:MI') AS action_taken_at,
+              old_data->>'description' AS old_description,
+              (old_data->>'transaction_date')::date AS old_transaction_date
           FROM log_history
           WHERE entity_type = 'transaction'
-            AND user_id = $1
+            AND user_id = $1               -- Filter by user_id from the provided parameter
           ORDER BY action_taken_at DESC
           """,
           current_user_id
@@ -221,15 +224,20 @@ async def update_transaction(tx_id: int, tx, current_user_id: int, role):
             user_id,
             action,
             old_data,
+            new_data,
             action_taken_at
           )
-          VALUES ('transaction', $1, $2, 'updated', $3::jsonb, now())
+          VALUES ('transaction', $1, $2, 'updated', $3::jsonb, $4::jsonb, now())
           """,
           tx_id,
           current_user_id,
           json.dumps({
             "description": old["description"],
             "transaction_date": str(old["transaction_date"]) if old["transaction_date"] else None
+          }),
+          json.dumps({
+            "description": updated["description"],
+            "transaction_date": str(updated["transaction_date"]) if updated["transaction_date"] else None
           })
         )
 
@@ -251,7 +259,7 @@ async def delete_transaction(tx_id: int, current_user_id: int, role):
     async with pool.acquire() as conn:
       async with conn.transaction():
 
-        if role != "admin":
+        if role != "admin" and role != 1:
           return None
 
         tx = await conn.fetchrow(
@@ -284,18 +292,23 @@ async def delete_transaction(tx_id: int, current_user_id: int, role):
             user_id,
             action,
             old_data,
+            new_data,
             action_taken_at
           )
-          VALUES ('transaction', $1, $2, 'deleted', $3::jsonb, now())
+          VALUES ('transaction', $1, $2, 'deleted', $3::jsonb, $4::jsonb, now())
           """,
           tx_id,
           current_user_id,
           json.dumps({
-            "description": tx["description"],
-            "transaction_date": str(tx["transaction_date"]) if tx["transaction_date"] else None,
-            "category_id": tx["category_id"],
-            "amount": str(tx["amount"]),
-            "transaction_type": tx["transaction_type"]
+              "description": tx["description"],
+              "transaction_date": str(tx["transaction_date"]) if tx["transaction_date"] else None,
+              "category_id": tx["category_id"],
+              "amount": str(tx["amount"]),
+              "transaction_type": tx["transaction_type"]
+          }),
+          json.dumps({
+            "description": None,
+            "transaction_date": None
           })
         )
 

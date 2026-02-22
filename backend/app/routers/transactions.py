@@ -28,7 +28,7 @@ async def get_transactions(user_data: Tuple[int, str] = Depends(get_user_id_and_
   return rows
 
 @router.get("/{transaction_id}", response_model=TransactionRead)
-async def get_transactions_specific_id(transaction_id: int, user_data: Tuple[int, str] = Depends(get_user_id_and_role)):
+async def get_transactions_by_id(transaction_id: int, user_data: Tuple[int, str] = Depends(get_user_id_and_role)):
 
   CURRENT_USER_ID, role = user_data
 
@@ -41,7 +41,7 @@ async def get_transactions_specific_id(transaction_id: int, user_data: Tuple[int
 
 
 @router.get("/history", response_model=List[TransactionHistoryRead])
-async def list_transaction_history(user_data: Tuple[int, str] = Depends(get_user_id_and_role)):
+async def get_transaction_history(user_data: Tuple[int, str] = Depends(get_user_id_and_role)):
 
   CURRENT_USER_ID, role = user_data
   rows = await transactions_service.get_transactions_history(CURRENT_USER_ID, role)
