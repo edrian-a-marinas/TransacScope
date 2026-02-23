@@ -1,5 +1,6 @@
 // src/pages/auth/Login.tsx
 import { useState, useContext } from "react"
+import type { ChangeEvent, FormEvent } from "react"
 import { validateLogin } from "../schemas/login"
 import type { LoginForm } from "../schemas/login"
 import api from "../../../services/apiClient"
@@ -14,12 +15,12 @@ export default function Login() {
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState("")
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setForm({ ...form, [e.target.name]: e.target.value })
+  const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
+    setForm({ ...form, [event.target.name]: event.target.value })
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleSubmit = async (event: FormEvent) => {
+    event.preventDefault()
     if (loading) return 
     setErrors([])
     setMessage("")
@@ -109,7 +110,7 @@ export default function Login() {
           {loading ? "Logging in..." : "Login"}
         </button>
       </form>
-      {/* Link to Register */}
+
       <p className="">
         Don't have an account?{" "}
         <Link to="/register">Create one</Link>
