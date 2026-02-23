@@ -1,7 +1,7 @@
 import { z } from "zod"
 
 // Conditional Data validations
-export const loginSchema = z.object({
+const loginSchema = z.object({
   email: z.string().email({ message: "Invalid email format" }),
   password: z
     .string()
