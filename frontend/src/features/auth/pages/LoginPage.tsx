@@ -3,6 +3,7 @@ import { useState, useContext } from "react"
 import type { ChangeEvent, FormEvent } from "react"
 import { validateLogin } from "../schemas/login"
 import type { LoginForm } from "../schemas/login"
+import { UserSchema } from "../schemas/userAuth"
 import api from "../../../services/apiClient"
 import { AuthContext } from "../AuthContext"
 import { Link } from "react-router-dom"
@@ -39,6 +40,7 @@ export default function Login() {
       )
 
       const { access_token, token_type, user } = response.data
+      const parsedUser = UserSchema.parse(user)
 
       // Store token
       localStorage.setItem("access_token", access_token)
@@ -47,7 +49,7 @@ export default function Login() {
 
       // Update global auth state
       setLoggedIn(true)
-      setUser(user)
+      setUser(parsedUser)
      
 
     } catch (err: any) {

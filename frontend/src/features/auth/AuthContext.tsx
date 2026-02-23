@@ -1,29 +1,11 @@
 // src/contexts/AuthContext.tsx
 import { createContext, useState, useEffect, useCallback } from "react"
 import type { ReactNode } from "react"
-
+import { UserSchema } from "./schemas/userAuth"
+import type { AuthContextType, User } from "./schemas/userAuth"
 import api, { setLogoutCallback } from "../../services/apiClient"
 
-// Define the User type based on your database
-interface User {
-  id: number
-  first_name: string
-  middle_name?: string | null
-  last_name: string
-  email: string
-  phone_number?: string | null
-  role_id: number
-  is_active: boolean
-  created_at: string
-}
 
-interface AuthContextType {
-  isLoggedIn: boolean
-  user: User | null
-  setLoggedIn: (val: boolean) => void
-  setUser: (user: User | null) => void
-  logout: () => void
-}
 
 // Default context values
 export const AuthContext = createContext<AuthContextType>({
@@ -61,7 +43,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           headers: { Authorization: `${tokenType} ${token}` },
         })
 
-        setUser(response.data)
+        const parsedUser = UserSchema.parse(response.data)
+
+        setUser(parsedUser)
         setIsLoggedIn(true)
       } catch {
         logout()
