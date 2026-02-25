@@ -5,7 +5,7 @@ import api from "../../../services/apiClient";
 import { AuthContext } from "../../auth/AuthContext";
 import type { Transaction, Category } from "../schemas/transaction";
 import { transactionSchema } from "../schemas/transaction";
-import type { OnCloseProps } from "../../../../utility"
+import type { OnCloseProps } from "../../../../utility";
 
 export default function CreateTransaction({ onClose }: OnCloseProps) {
   const { user } = useContext(AuthContext);
@@ -16,39 +16,68 @@ export default function CreateTransaction({ onClose }: OnCloseProps) {
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const [errors, setErrors] = useState<string[]>([]);
-  const [categoryDescription, setCategoryDescription] = useState<string>("");
+  const [categoryDescription, setCategoryDescription] = useState("");
 
   const [form, setForm] = useState<Transaction>({
     amount: 0,
     description: "",
     category_id: 0,
-    transaction_type: "debit",
+    transaction_type: "",
     transaction_date: ""
   });
 
-  useEffect(() => {
-    api.get("api/categories/").then(res => setCategories(res.data));
-  }, []);
+  const [amountInput, setAmountInput] = useState("");
 
+  // 🔹 Fetch categories when type changes
   useEffect(() => {
-    if (form.category_id) {
-      const selectedCategory = categories.find(c => c.id === form.category_id);
-      if (selectedCategory) {
-        setCategoryDescription(selectedCategory.name);
-      }
+    if (!form.transaction_type) {
+      setCategories([]);
+      return;
     }
+
+    const endpoint =
+      form.transaction_type === "Expense"
+        ? "api/categories/expense"
+        : "api/categories/income";
+
+    api.get(endpoint).then(res => {
+      setCategories(res.data);
+      setForm(prev => ({ ...prev, category_id: 0 }));
+    });
+  }, [form.transaction_type]);
+
+  // 🔹 Update selected category label
+  useEffect(() => {
+    const selected = categories.find(c => c.id === form.category_id);
+    setCategoryDescription(selected ? selected.name : "");
   }, [form.category_id, categories]);
 
-  const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleChange = (
+    e: ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
     const { name, value } = e.target;
+
     setForm(prev => ({
       ...prev,
-      [name]: name === "amount" || name === "category_id" ? Number(value) : value
+      [name]:
+        name === "category_id" ? Number(value) : value
     }));
   };
 
-  const handleSubmit = async () => {
-    // Convert input string to number
+  const handleAmountChange = (e: ChangeEvent<HTMLInputElement>) => {
+    let value = e.target.value;
+
+    if (!/^\d*\.?\d*$/.test(value)) return;
+
+    const parts = value.split(".");
+    if (parts[1]?.length > 2) {
+      parts[1] = parts[1].slice(0, 2);
+    }
+
+    setAmountInput(parts.join("."));
+  };
+
+  const handleSubmit = () => {
     const updatedForm = {
       ...form,
       amount: Number(amountInput)
@@ -57,18 +86,13 @@ export default function CreateTransaction({ onClose }: OnCloseProps) {
     const result = transactionSchema.safeParse(updatedForm);
 
     if (!result.success) {
-      const messages = result.error.issues.map(issue => issue.message);
-      setErrors(messages);
+      setErrors(result.error.issues.map(issue => issue.message));
       return;
     }
 
     setErrors([]);
-    setForm(updatedForm); // update form
+    setForm(updatedForm);
     setShowConfirmation(true);
-  };
-
-  const handleBackToEdit = () => {
-    setShowConfirmation(false);
   };
 
   const handleConfirm = async () => {
@@ -76,47 +100,33 @@ export default function CreateTransaction({ onClose }: OnCloseProps) {
       if (!user) return;
       if (!token || !tokenType) return alert("Not authorized");
 
-      const res = await api.post("api/transactions/", form, {
+      await api.post("api/transactions/", form, {
         headers: {
           Authorization: `${tokenType} ${token}`
         }
       });
 
-      console.log("Transaction created:", res.data);
       alert("Successfully created!");
 
       setForm({
         amount: 0,
         description: "",
         category_id: 0,
-        transaction_type: "credit",
+        transaction_type: "",
         transaction_date: ""
       });
 
+      setAmountInput("");
       setShowConfirmation(false);
       onClose();
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      console.error(err.res?.data);
     }
   };
 
-  const [amountInput, setAmountInput] = useState<string>("");
-
-
-  const handleAmountChange = (e: ChangeEvent<HTMLInputElement>) => {
-    let value = e.target.value;
-
-    // Allow only numbers and dot
-    if (!/^\d*\.?\d*$/.test(value)) return;
-
-    // Limit to 2 decimal places
-    const parts = value.split(".");
-    if (parts[1]?.length > 2) {
-      parts[1] = parts[1].slice(0, 2);
-    }
-
-    setAmountInput(parts.join("."));
-  };
+  const handleBackToEdit = () => {
+    setShowConfirmation(false);
+  }  
 
   return (
     <>
@@ -155,31 +165,48 @@ export default function CreateTransaction({ onClose }: OnCloseProps) {
                 border: "none",
                 color: "#aaa",
                 fontSize: "22px",
-                fontWeight: "bold",
                 cursor: "pointer"
               }}
             >
               ×
             </button>
 
-            <h2 style={{ textAlign: "center" }}>Create Transaction</h2>
+            <h2 style={{ textAlign: "center" }}>Add Transaction</h2>
 
             {errors.length > 0 && (
               <div style={{ color: "red" }}>
-                {errors.map((err, index) => (
-                  <div key={index}>{err}</div>
+                {errors.map((err, i) => (
+                  <div key={i}>{err}</div>
                 ))}
               </div>
             )}
 
             <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", gap: "1rem" }}>
+              
+              {/* Type */}
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <label style={{ width: "40%" }}>Type</label>
+                <select
+                  name="transaction_type"
+                  value={form.transaction_type}
+                  onChange={handleChange}
+                  style={{ width: "57%" }}
+                >
+                  <option value="">Select Type</option>
+                  <option value="Expense">Expense</option>
+                  <option value="Income">Income</option>
+                </select>
+              </div>
+
+              {/* Category */}
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
                 <label style={{ width: "40%" }}>Category</label>
                 <select
                   name="category_id"
                   value={form.category_id}
                   onChange={handleChange}
-                  style={{ width: "55%" }}
+                  disabled={!form.transaction_type}
+                  style={{ width: "57%" }}
                 >
                   <option value={0}>Select category</option>
                   {categories.map(c => (
@@ -190,20 +217,8 @@ export default function CreateTransaction({ onClose }: OnCloseProps) {
                 </select>
               </div>
 
-              <div style={{ display: "flex", justifyContent: "space-between", gap: "1rem" }}>
-                <label style={{ width: "40%" }}>Type</label>
-                <select
-                  name="transaction_type"
-                  value={form.transaction_type}
-                  onChange={handleChange}
-                  style={{ width: "55%" }}
-                >
-                  <option value="debit">Debit</option>
-                  <option value="credit">Credit</option>
-                </select>
-              </div>
-
-              <div style={{ display: "flex", justifyContent: "space-between", gap: "1rem" }}>
+              {/* Date */}
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
                 <label style={{ width: "40%" }}>Date</label>
                 <input
                   type="date"
@@ -214,11 +229,11 @@ export default function CreateTransaction({ onClose }: OnCloseProps) {
                 />
               </div>
 
-              <div style={{ display: "flex", justifyContent: "space-between", gap: "1rem" }}>
+              {/* Amount */}
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
                 <label style={{ width: "40%" }}>Amount</label>
                 <input
                   type="text"
-                  name="amount"
                   value={amountInput}
                   onChange={handleAmountChange}
                   placeholder="₱ Enter amount"
@@ -226,14 +241,14 @@ export default function CreateTransaction({ onClose }: OnCloseProps) {
                 />
               </div>
 
-              <div style={{ display: "flex", justifyContent: "space-between", gap: "1rem" }}>
+              {/* Description */}
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
                 <label style={{ width: "40%" }}>Description</label>
                 <input
                   type="text"
                   name="description"
                   value={form.description}
                   onChange={handleChange}
-                  placeholder="Enter description"
                   style={{ width: "55%" }}
                 />
               </div>
@@ -249,7 +264,7 @@ export default function CreateTransaction({ onClose }: OnCloseProps) {
 
       {showConfirmation && (
         <div
-          onClick={() => setShowConfirmation(false)}
+          onClick={handleBackToEdit}
           style={{
             position: "fixed",
             top: 0,
@@ -268,43 +283,18 @@ export default function CreateTransaction({ onClose }: OnCloseProps) {
               background: "#1c1414",
               padding: "1.5rem",
               borderRadius: "8px",
-              minWidth: "320px",
-              position: "relative"
+              minWidth: "320px"
             }}
           >
-            <button
-              onClick={() => setShowConfirmation(false)}
-              style={{
-                position: "absolute",
-                top: "8px",
-                right: "12px",
-                background: "transparent",
-                border: "none",
-                color: "#aaa",
-                fontSize: "22px",
-                fontWeight: "bold",
-                cursor: "pointer"
-              }}
-            >
-              ×
-            </button>
+            <h2> Confirm Transaction Details </h2>
+            <h3 style={{ textAlign: "center" }}>
+              Type: {form.transaction_type}
+            </h3>
 
-            <h2 style={{ textAlign: "center" }}>Confirm Your Transaction</h2>
-
-            <div style={{ marginBottom: "1rem" }}>
-              <h3>Your Transaction Ticket:</h3>
-              <p><strong>Category:</strong> {categoryDescription}</p>
-              <p><strong>Type:</strong> {form.transaction_type}</p>
-              <p><strong>Date:</strong> {form.transaction_date}</p>
-              <p>
-              <strong>Amount:</strong> ₱
-                {Number(form.amount).toLocaleString(undefined, {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2
-                })}
-              </p>
-              <p><strong>Description:</strong> {form.description}</p>
-            </div>
+            <p><strong>Category:</strong> {categoryDescription}</p>
+            <p><strong>Date:</strong> {form.transaction_date}</p>
+            <p><strong>Amount:</strong> ₱{Number(form.amount).toLocaleString()}</p>
+            <p><strong>Description:</strong> {form.description}</p>
 
             <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.5rem" }}>
               <button onClick={handleBackToEdit}>Go Back</button>

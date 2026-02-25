@@ -1,9 +1,9 @@
 App name: TransacScope
 
-Title: Role-Based_Business_Expense_Management_System
+Title: Role-Based Business Finance and Transaction Management
 
-Concept: 
-A system to record, track, and report business expenses for a company (eg, Purchases, Expenses, ). Users can add, update, request delete, and query expense transactions. Reports summarize daily, weekly, or monthly activity for decision-making.
+Concept:  
+A system to record, track, and report business transactions for a company (eg, Purchases, Expenses, Income). Users can add, update, request delete, and query expense and income transactions. Reports summarize daily, weekly, or monthly activity for decision-making.
 
 
 How it covers everything:
@@ -18,19 +18,17 @@ This includes daily operational costs (electricity, internet), hardware and equi
 
 
 Expense categories for the business:
-
 Operating Overhead:  miscellaneous expenses (rent, ELectricity, Internet, Water) // daily cost
-
 Inventory & Supplies: Consumables and short-term items (food & beverages for resale, cleaning supplies, stock peripherals)
-
 Salary: Payments to employees (technicians, staff, attendants)
-
 Equipment & Assets: Long-term investments (new computers, upgrades, gaming chairs, routers/switches)
-
 Marketing & Advertising: (Social media ads, outdoor banners, promotional events)
-
 Other Business Costs: Customizable by super admin and admin. they can amange all categories
 
+
+Income categories for the business:
+xxxxx: xxxxxxx (xxxx, xxxx, xxx etc)
+etc
 
 Workflow with users and admin: 
 Roles are fixed for demo: 1 Super Admin, 1 Admin, 5 Standard Users (possibly1 standard user per categories, but no stricly).
@@ -59,7 +57,7 @@ Reports / Summary: Generate and view reports for their own transactions only
 
 STACKS: 
 Database:PostgreSQL 
-- Store all transaction data: amount, date, type (credit/debit), category, description.
+- Store all transaction data: amount, date, type (Expense/Income), category, description.
 - Store related tables: users (if authentication is implemented), transaction categories, reports history.
 - Can include relational constraints: e.g., each transaction belongs to a category, optional user table.
 
@@ -73,14 +71,14 @@ FastAPI & Data Modeling:
 SQL scripts with PostgreSQL: 
 - layer to interact with PostgreSQL.
 - CRUD operations: Create, Read, Update, Delete transactions.
-- Query filtering for reports (e.g., sum totals per category or per time period).
+- Query filtering for reports (e.g., sum totals per category or per time period, total income vs total expense, net profit per period).
 
 
 API / REST: 
 Endpoints for:
-/transactions → list, create, update, delete transactions.
+/transactions → list, create, update, delete transactions. ((expense or income).)
 /categories → manage categories.
-/reports → generate reports (daily, monthly, etc.).
+/reports → generate reports (daily, monthly, etc., including income vs expense summaries).
 - Use REST principles: proper HTTP methods (GET, POST, PUT, DELETE).
 
 Front-End:
@@ -99,7 +97,6 @@ Full Stack: FastAPI serves as backend.
 Extra Future Features (If clients needs/wants it ):
 - Include transaction summaries or charts via API endpoints in dashboard
 - Generate downloadable reports (CSV or PDF). 4
-- include sales / income money
 - etc.., depends on client.
 
 

@@ -17,7 +17,7 @@ export type Transaction = {
   category_id: number;
   description: string;
   transaction_date: string;
-  transaction_type: "credit" | "debit";
+  transaction_type: string;
 };
 
 
@@ -51,7 +51,7 @@ export const transactionSchema = z.object({
     .regex(dateRegex, { message: "Invalid date format. Use YYYY-MM-DD" }),
 
   transaction_type: z
-    .enum(["credit", "debit"], { message: "Invalid transaction type" })
+    .enum(["Expense", "Income"], { message: "Invalid transaction type" })
 });
 
 export type TransactionCreate = z.infer<typeof transactionSchema>;
@@ -63,7 +63,7 @@ export type ReadTransaction = {
   user_id: number;
   category_id: number;
   amount: number;
-  transaction_type: "credit" | "debit";
+  transaction_type: "Expense" | "Income";
   description: string;
   transaction_date: string;
   created_at: string;
