@@ -7,19 +7,63 @@ import logging
 logger = logging.getLogger(__name__)
 
 # --------- CORE SUMMARY LOGIC ----------
-async def _generate_summary(conn, start_date, end_date, user_id=None, weekly=False):
+async def _generate_summary(conn, start_date, end_date, user_id=None, daily=False, weekly=False):
   """
   Generates summary aggregation for given date range.
-  weekly=False -> monthly/total summary
+  daily=True  -> daily split summary
   weekly=True -> weekly split summary
+  otherwise   -> monthly/total summary
   """
   summaries = []
 
   try:
-    if weekly:
-      from datetime import timedelta
+    from datetime import timedelta
 
+    # --------- DAILY ----------
+    if daily:
+      current_date = start_date
+
+      while current_date <= end_date:
+        if user_id:
+          rows = await conn.fetch(
+            """
+            SELECT c.name AS category_name,
+                   SUM(t.amount) AS total_amount
+            FROM transactions t
+            JOIN categories c ON c.id = t.category_id
+            WHERE t.transaction_date = $1
+              AND t.user_id = $2
+              AND t.deleted_at IS NULL
+            GROUP BY c.name
+            ORDER BY total_amount DESC
+            """,
+            current_date,
+            user_id
+          )
+        else:
+          rows = await conn.fetch(
+            """
+            SELECT c.name AS category_name,
+                   SUM(t.amount) AS total_amount
+            FROM transactions t
+            JOIN categories c ON c.id = t.category_id
+            WHERE t.transaction_date = $1
+              AND t.deleted_at IS NULL
+            GROUP BY c.name
+            ORDER BY total_amount DESC
+            """,
+            current_date
+          )
+
+        for r in rows:
+          summaries.append(dict(r, date=str(current_date)))
+
+        current_date += timedelta(days=1)
+
+    # --------- WEEKLY ----------
+    elif weekly:
       current_start = start_date
+
       while current_start <= end_date:
         current_end = min(current_start + timedelta(days=6), end_date)
 
@@ -60,6 +104,8 @@ async def _generate_summary(conn, start_date, end_date, user_id=None, weekly=Fal
           summaries.append(dict(r, week_start=str(current_start), week_end=str(current_end)))
 
         current_start = current_end + timedelta(days=1)
+
+    # --------- MONTHLY / TOTAL ----------
     else:
       if user_id:
         rows = await conn.fetch(
@@ -93,6 +139,7 @@ async def _generate_summary(conn, start_date, end_date, user_id=None, weekly=Fal
           start_date,
           end_date
         )
+
       summaries = [dict(r) for r in rows]
 
     return summaries
@@ -114,6 +161,7 @@ async def generate_report(report, current_user_id: int, role: str):
     async with pool.acquire() as conn:
       async with conn.transaction():
 
+        daily = report.report_type.lower() == "daily"
         weekly = report.report_type.lower() == "weekly"
 
         # Admin can generate report for all users
@@ -124,6 +172,7 @@ async def generate_report(report, current_user_id: int, role: str):
           report.start_date,
           report.end_date,
           user_id=user_id_filter,
+          daily=daily,
           weekly=weekly
         )
 
