@@ -1,11 +1,21 @@
-export type ReportType = "weekly" | "monthly";
+export type ReportType = "daily" | "weekly" | "monthly";
 
 type ReportSummaryItem = {
   category_name: string;
   total_amount: number;
+
+  // weekly
   week_start?: string;
   week_end?: string;
+
+  // daily
+  date?: string;
+
+  // monthly (future safe)
+  month_start?: string;
+  month_end?: string;
 };
+
 
 export type ReportResult = {
   report: {

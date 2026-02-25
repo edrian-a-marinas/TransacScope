@@ -21,44 +21,44 @@ async def _generate_summary(conn, start_date, end_date, user_id=None, daily=Fals
 
     # --------- DAILY ----------
     if daily:
-      current_date = start_date
+      if user_id:
+        rows = await conn.fetch(
+          """
+          SELECT 
+            t.transaction_date AS date,
+            c.name AS category_name,
+            SUM(t.amount) AS total_amount
+          FROM transactions t
+          JOIN categories c ON c.id = t.category_id
+          WHERE t.transaction_date BETWEEN $1 AND $2
+            AND t.user_id = $3
+            AND t.deleted_at IS NULL
+          GROUP BY t.transaction_date, c.name
+          ORDER BY t.transaction_date, total_amount DESC
+          """,
+          start_date,
+          end_date,
+          user_id
+        )
+      else:
+        rows = await conn.fetch(
+          """
+          SELECT 
+            t.transaction_date AS date,
+            c.name AS category_name,
+            SUM(t.amount) AS total_amount
+          FROM transactions t
+          JOIN categories c ON c.id = t.category_id
+          WHERE t.transaction_date BETWEEN $1 AND $2
+            AND t.deleted_at IS NULL
+          GROUP BY t.transaction_date, c.name
+          ORDER BY t.transaction_date, total_amount DESC
+          """,
+          start_date,
+          end_date
+        )
 
-      while current_date <= end_date:
-        if user_id:
-          rows = await conn.fetch(
-            """
-            SELECT c.name AS category_name,
-                   SUM(t.amount) AS total_amount
-            FROM transactions t
-            JOIN categories c ON c.id = t.category_id
-            WHERE t.transaction_date = $1
-              AND t.user_id = $2
-              AND t.deleted_at IS NULL
-            GROUP BY c.name
-            ORDER BY total_amount DESC
-            """,
-            current_date,
-            user_id
-          )
-        else:
-          rows = await conn.fetch(
-            """
-            SELECT c.name AS category_name,
-                   SUM(t.amount) AS total_amount
-            FROM transactions t
-            JOIN categories c ON c.id = t.category_id
-            WHERE t.transaction_date = $1
-              AND t.deleted_at IS NULL
-            GROUP BY c.name
-            ORDER BY total_amount DESC
-            """,
-            current_date
-          )
-
-        for r in rows:
-          summaries.append(dict(r, date=str(current_date)))
-
-        current_date += timedelta(days=1)
+      summaries = [dict(r, date=str(r["date"])) for r in rows]
 
     # --------- WEEKLY ----------
     elif weekly:
