@@ -1,0 +1,127 @@
+App name: TransacScope
+
+Title: Transaction Processing & Reporting System 
+
+Concept: 
+A system to record, track, and report business expenses for a company (eg, Purchases, Expenses, ). Users can add, update, request delete, and query expense transactions. Reports summarize daily, weekly, or monthly activity for decision-making.
+
+
+How it covers everything:
+The project uses PostgreSQL to store expense data, including details like amounts, dates, categories, and descriptions, as well as optional tables for users and expense categories. Using FastAPI and data modeling, expenses, categories, and optionally users are defined as models with Pydantic schemas to validate incoming data and shape responses. PostgreSQL and SQL serve to perform all database operations, such as creating, reading, updating, and deleting expenses, and to query aggregated data for reporting. The system exposes multiple RESTful API endpoints to handle expenses, categories, and report generation, following proper HTTP methods and response codes. As a full stack exercise, the FastAPI backend is fully functional, and endpoints can be tested through tools like Postman or a React.TSX/HTML/CSS frontend. For an extra challenge, the system can implement JWT-based authentication to manage user access, generate downloadable reports, and provide summary endpoints for analytics.
+
+
+Example scenario: Real-World Inspiration of how the system gonna work
+
+Let’s assume your project is inspired by a computer café (internet/gaming café) business:
+-- This TransacScope → tracks all business expenses, independent of sales.
+This includes daily operational costs (electricity, internet), hardware and equipment purchases (PCs, peripherals), maintenance and repairs, employee salaries, rent, food and beverage inventory for resale inside the café, and advertising and promotional expenses (such as social media promotions and outdoor banners).
+
+
+Expense categories for the business:
+
+Operating Overhead:  miscellaneous expenses (rent, ELectricity, Internet, Water) // daily cost
+
+Inventory & Supplies: Consumables and short-term items (food & beverages for resale, cleaning supplies, stock peripherals)
+
+Salary: Payments to employees (technicians, staff, attendants)
+
+Equipment & Assets: Long-term investments (new computers, upgrades, gaming chairs, routers/switches)
+
+Marketing & Advertising: (Social media ads, outdoor banners, promotional events)
+
+Other Business Costs: Customizable by super admin and admin. they can amange all categories
+
+
+Workflow with users and admin: 
+Roles are fixed for demo: 1 Super Admin, 1 Admin, 5 Standard Users (possibly1 standard user per categories, but no stricly).
+
+--- Super Admin (Business Owner): Can CRUD categories, promote and demote users, soft delete users, view all transactions or their own, delete any transactions, edit their own transactions, see soft-deleted transactions, and generate reports for all or own transactions.
+
+-- Admin (Manager): Can CRUD categories, view all transactions or their own, soft delete transactions, edit their own transactions, see soft-deleted transactions, generate reports for all or own transactions, and manage deletion requests from Standard users.
+
+- Standard Users (Staff): Can create, view, and update their own transactions, request deletion of their transactions, generate and view reports for their own transactions, and view the edit/delete history of their own transactions.
+
+* The key difference between Admin and Super Admin is that the Super Admin can manage users fully, including promoting, demoting, and soft deleting them, while the Admin cannot.
+
+
+Super/Admin side bar:
+Dashboard: Full overview of all users and transactions
+Manage Categories - add edit delete categories
+Transactions - View all transactions, add new, edit own, soft delete
+Reports - Generate reports for all users or their own transactions
+Manage Users / Roles: Approve or decline deletion requests, promote/demote users (Super Admin only)
+
+standard user side bar:
+Dashboard: Overview of their own transactions only
+Transactions: Create, view, and update their own transactions, request deletion
+Reports / Summary: Generate and view reports for their own transactions only
+
+
+STACKS: 
+Database:PostgreSQL 
+- Store all transaction data: amount, date, type (credit/debit), category, description.
+- Store related tables: users (if authentication is implemented), transaction categories, reports history.
+- Can include relational constraints: e.g., each transaction belongs to a category, optional user table.
+
+
+FastAPI & Data Modeling: 
+- Models for transactions, categories, and optionally users.
+- Define Pydantic schemas for request validation and response formatting.
+- Include relationships between models (e.g., transactions → categories).
+
+
+SQL scripts with PostgreSQL: 
+- layer to interact with PostgreSQL.
+- CRUD operations: Create, Read, Update, Delete transactions.
+- Query filtering for reports (e.g., sum totals per category or per time period).
+
+
+API / REST: 
+Endpoints for:
+/transactions → list, create, update, delete transactions.
+/categories → manage categories.
+/reports → generate reports (daily, monthly, etc.).
+- Use REST principles: proper HTTP methods (GET, POST, PUT, DELETE).
+
+Front-End:
+ - Vite for Tools and folder structure
+ - React.TSX for interactive and connection to FastAPI
+ - TS for type scripting in registration and others
+ - Tailwind
+
+
+Full Stack: FastAPI serves as backend.
+- Configured environment includes: FastAPI app, PostgreSQL, SQL, Pydantic models, API routes.
+- clean env.file, clean folder structures etc.
+
+
+
+Extra Future Features (If clients needs/wants it ):
+- Include transaction summaries or charts via API endpoints in dashboard
+- Generate downloadable reports (CSV or PDF). 4
+- include sales / income money
+- etc.., depends on client.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Built-in data validation with Pydantic, perfect for multiple transaction endpoints and categories. Type safety → early error detection.
+Very good with TSX having pydantic
+Python ecosystem provides strong reporting, analytics, and CSV/PDF generation capabilities.
+Async-ready and performant for your transaction workload.Async I/O allows handling many concurrent database calls without blocking.
+Simpler for a small team/project where reliability and correctness of data handling is critical.
