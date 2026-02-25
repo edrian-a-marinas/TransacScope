@@ -12,15 +12,47 @@ async def get_categories():
     async with pool.acquire() as conn:
       rows = await conn.fetch(
         """
-        SELECT id, name, description, created_at
+        SELECT * 
         FROM categories
-        ORDER BY name ASC
         """
       )
       return [dict(row) for row in rows]
   except Exception:
     logger.exception("Error fetching categories")
     raise
+
+async def expense_categories():
+  try:
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+      rows = await conn.fetch(
+        """
+        SELECT * 
+        FROM categories
+        WHERE type = 'Expense'
+        """
+      )
+      return [dict(row) for row in rows]
+  except Exception:
+    logger.exception("Error fetching categories")
+    raise
+
+
+async def income_categories():
+  try:
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+      rows = await conn.fetch(
+        """
+        SELECT * 
+        FROM categories
+        WHERE type = 'Income'
+        """
+      )
+      return [dict(row) for row in rows]
+  except Exception:
+    logger.exception("Error fetching categories")
+    raise 
 
 
 # READ: single category

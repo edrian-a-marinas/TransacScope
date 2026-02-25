@@ -17,8 +17,18 @@ router = APIRouter(
 
 # GET all
 @router.get("/", response_model=List[CategoryRead])
-async def list_categories():
+async def get_categories():
   rows = await categories_service.get_categories()
+  return rows
+
+@router.get("/expense", response_model=List[CategoryRead])
+async def expense_categories():
+  rows = await categories_service.expense_categories()
+  return rows
+
+@router.get("/income", response_model=List[CategoryRead])
+async def income_categories():
+  rows = await categories_service.income_categories()
   return rows
 
 
