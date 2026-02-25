@@ -1,160 +1,263 @@
-import { useEffect, useState, useContext } from "react";
+import { useState, useContext } from "react";
 import api from "../../../services/apiClient";
 import { AuthContext } from "../../auth/AuthContext";
+import type { OnCloseProps } from "../../../../utility";
+import type { ReportType, ReportResult } from "../schemas/report";
 
-import type { OnCloseProps, ReadTransactionHistory } from "../schemas/transaction";
-import { formatDate } from "../../../../utility"
-
-export default function HistoryTransaction({ onClose }: OnCloseProps) {
+export default function GenerateReportModal({ onClose }: OnCloseProps) {
   const { user } = useContext(AuthContext);
   const userRole = user!.role_id;
 
-  const [transactionHistory, setTransactionHistory] = useState<ReadTransactionHistory[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [viewMode, setViewMode] = useState<"all" | "own">("all"); // New state for view mode
+  const [reportType, setReportType] = useState<ReportType>("monthly");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [viewMode, setViewMode] = useState<"all users" | "own">(
+    userRole === 1 ? "all users" : "own"
+  );
 
-  const token = localStorage.getItem("access_token");
-  const tokenType = localStorage.getItem("token_type");
+  const [loading, setLoading] = useState(false);
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [showSummary, setShowSummary] = useState(false);
+  const [reportResult, setReportResult] = useState<ReportResult | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        if (!token || !tokenType) return;
+  const handleSubmit = () => {
+    if (!startDate || !endDate) {
+      setError("Start and End date are required.");
+      return;
+    }
 
-        // API call to fetch all transactions
-        const [transHistoryRes] = await Promise.all([
-          api.get("api/transactions/history", {
-            headers: { Authorization: `${tokenType} ${token}` },
-          }),
+    if (new Date(startDate) > new Date(endDate)) {
+      setError("End date cannot be earlier than Start date.");
+      return;
+    }
 
-        ]);
+    setError(null);
+    setShowConfirmation(true);
+  };
 
-        const filteredTransHistory: ReadTransactionHistory[] = transHistoryRes.data;
+  const handleBackToEdit = () => {
+    setShowConfirmation(false);
+  };
 
-        setTransactionHistory(filteredTransHistory);
-      } catch (err) {
-        // Handle error
-      } finally {
-        setLoading(false);
+  const handleConfirm = async () => {
+    try {
+      setLoading(true);
+      const payload = {
+        report_type: reportType,
+        start_date: startDate,
+        end_date: endDate,
+        all_users: userRole === 1 ? viewMode === "all users" : false,
+      };
+
+      const response = await api.post("api/reports/", payload);
+      setReportResult(response.data);
+      setShowConfirmation(false);
+      setShowSummary(true);
+    } catch (err: any) {
+      setError(err.response?.data?.detail || "Failed to generate report.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCloseSummary = () => {
+    setShowSummary(false);
+    onClose();
+  };
+
+  // -------------------------
+  // GROUPING LOGIC
+  // -------------------------
+
+  const groupSummary = () => {
+    if (!reportResult) return {};
+
+    const grouped: Record<string, any[]> = {};
+
+    reportResult.summary.forEach((item) => {
+      let key = "default";
+
+      if (reportResult.report.report_type === "weekly") {
+        key = `${item.week_start} → ${item.week_end}`;
       }
-    };
 
-    fetchData();
-  }, [token, tokenType]);
+      if (reportResult.report.report_type === "daily") {
+        key = item.date || "Unknown Date";
+      }
 
-  // Filter transactions based on the selected view mode
-  const filteredTransHistory = viewMode === "all" ? transactionHistory : transactionHistory.filter(tx => tx.user_id === user?.id);
+      if (reportResult.report.report_type === "monthly") {
+        key = `${reportResult.report.start_date} → ${reportResult.report.end_date}`;
+      }
+
+      if (!grouped[key]) grouped[key] = [];
+      grouped[key].push(item);
+    });
+
+    return grouped;
+  };
+
+  const groupedData = groupSummary();
 
   return (
-    <div
-      onClick={onClose}
-      style={{
-        position: "fixed",
-        top: 0,
-        left: 0,
-        width: "100%",
-        height: "100%",
-        backgroundColor: "rgba(0,0,0,0.3)",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-      }}
-    >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          background: "#1c1414",
-          padding: "1.5rem",
-          borderRadius: "8px",
-          minWidth: "900px",
-          maxHeight: "80vh",
-          overflow: "auto",
-          position: "relative",
-        }}
-      >
-        <button
-          onClick={onClose}
-          style={{
-            position: "absolute",
-            top: "8px",
-            right: "12px",
-            background: "transparent",
-            border: "none",
-            color: "#aaa",
-            fontSize: "22px",
-            fontWeight: "bold",
-            cursor: "pointer",
-          }}
-        >
-          ×
-        </button>
+    <>
+      {/* FORM */}
+      {!showConfirmation && !showSummary && (
+        <div onClick={onClose} style={overlayStyle}>
+          <div onClick={(e) => e.stopPropagation()} style={modalStyle}>
+            <button onClick={onClose} style={closeBtnStyle}>×</button>
 
-        <h2 style={{ textAlign: "center" }}>Transaction History</h2>
+            <h2 style={{ textAlign: "center" }}>Generate Report</h2>
 
-        {/* Add role-based dropdown */}
-        {userRole === 1 && (
-          <select onChange={(e) => setViewMode(e.target.value as "all" | "own")}>
-            <option value="all">Show All</option>
-            <option value="own">Show Your Own View Only</option>
-          </select>
-        )}
+            {error && <p style={{ color: "red" }}>{error}</p>}
 
-        {loading && <p>Loading...</p>}
+            {userRole === 1 && (
+              <div>
+                <label>View Mode:</label>
+                <select
+                  value={viewMode}
+                  onChange={(e) =>
+                    setViewMode(e.target.value as "all users" | "own")
+                  }
+                >
+                  <option value="all users">All Users</option>
+                  <option value="own">My Own Only</option>
+                </select>
+              </div>
+            )}
 
-        {!loading && filteredTransHistory.length === 0 && <p>No transactions found.</p>}
+            <div>
+              <label>Report Type:</label>
+              <select
+                value={reportType}
+                onChange={(e) =>
+                  setReportType(e.target.value as ReportType)
+                }
+              >
+                <option value="monthly">Monthly</option>
+                <option value="weekly">Weekly</option>
+                <option value="daily">Daily</option>
+              </select>
+            </div>
 
-        {!loading && filteredTransHistory.length > 0 && (
-          <table
-            style={{
-              width: "100%",
-              borderCollapse: "collapse",
-              marginTop: "1rem",
-              textAlign: "left",
-            }}
-          >
-            <thead>
-              <tr>
-                <th style={thStyle}>transac ID</th>
-                {userRole === 1 && <th style={thStyle}>User ID</th>}
-                <th style={thStyle}>Action</th>
-                <th style={thStyle}>Action Taken At</th>
-                <th style={thStyle}>Old Description</th>
-                <th style={thStyle}>New Description</th>
-                <th style={thStyle}>Old Transaction Date</th>
-                <th style={thStyle}>New Transaction Date</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredTransHistory.map((tx) => (
-                <tr key={tx.id}>
-                  <td style={tdStyle}>{tx.entity_id}</td>
-                  {userRole === 1 && <td style={tdStyle}>{tx.user_id}</td>}
-                  <td style={tdStyle}>{tx.action}</td>
-                  <td style={tdStyle}>{formatDate(tx.action_taken_at)}</td>
-                  <td style={tdStyle}>{tx.old_description}</td>
-                  <td style={tdStyle}>{tx.new_description}</td>
-                  <td style={tdStyle}>{tx.old_transaction_date}</td>
-                  <td style={tdStyle}>{tx.new_transaction_date}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
-    </div>
+            <div>
+              <label>Start Date:</label>
+              <input type="date" value={startDate}
+                onChange={(e) => setStartDate(e.target.value)} />
+            </div>
+
+            <div>
+              <label>End Date:</label>
+              <input type="date" value={endDate}
+                onChange={(e) => setEndDate(e.target.value)} />
+            </div>
+
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.5rem" }}>
+              <button onClick={onClose}>Cancel</button>
+              <button onClick={handleSubmit}>Generate</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* CONFIRMATION */}
+      {showConfirmation && (
+        <div onClick={handleBackToEdit} style={overlayStyle}>
+          <div onClick={(e) => e.stopPropagation()} style={modalStyle}>
+            <button onClick={handleBackToEdit} style={closeBtnStyle}>×</button>
+            <h2>Confirm Report Generation</h2>
+            <p><strong>Report Type:</strong> {reportType}</p>
+            <p><strong>Date Range:</strong> {startDate} → {endDate}</p>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.5rem" }}>
+              <button onClick={handleBackToEdit}>Go Back</button>
+              <button onClick={handleConfirm} disabled={loading}>
+                {loading ? "Generating..." : "Confirm"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* SUMMARY */}
+      {showSummary && reportResult && (
+        <div onClick={handleCloseSummary} style={overlayStyle}>
+          <div onClick={(e) => e.stopPropagation()} style={summaryStyle}>
+            <button onClick={handleCloseSummary} style={closeBtnStyle}>×</button>
+
+            <h2 style={{ textAlign: "center" }}>Report Summary</h2>
+
+            <p><strong>Report Type:</strong> {reportResult.report.report_type}</p>
+            <p><strong>Date Range:</strong> {reportResult.report.start_date} → {reportResult.report.end_date}</p>
+            <p><strong>Generated At:</strong> {reportResult.report.created_at}</p>
+
+            <hr />
+
+            {Object.entries(groupedData).map(([period, items], idx) => (
+              <div key={idx} style={{ marginBottom: "1rem" }}>
+                {reportResult.report.report_type === "weekly" && (
+                  <h4>Week: {period}</h4>
+                )}
+
+                {reportResult.report.report_type === "daily" && (
+                  <h4>Day: {period}</h4>
+                )}
+
+                {reportResult.report.report_type === "monthly" && (
+                  <h4>Month: {period}</h4>
+                )}
+
+                {items.map((item, i) => (
+                  <div key={i}>
+                    {item.category_name}: ₱{item.total_amount.toFixed(2)}
+                  </div>
+                ))}
+              </div>
+            ))}
+
+            <div style={{ display: "flex", justifyContent: "flex-end" }}>
+              <button onClick={handleCloseSummary}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
-// Table cell styles
-const thStyle: React.CSSProperties = {
-  border: "1px solid #999",
-  padding: "4px 8px",
-  backgroundColor: "#333",
-  color: "#fff",
+const overlayStyle = {
+  position: "fixed" as const,
+  top: 0,
+  left: 0,
+  width: "100%",
+  height: "100%",
+  backgroundColor: "rgba(0,0,0,0.3)",
+  display: "flex",
+  justifyContent: "center",
+  alignItems: "center",
 };
 
-const tdStyle: React.CSSProperties = {
-  border: "1px solid #999",
-  padding: "4px 8px",
-  color: "#eee",
+const modalStyle = {
+  background: "#1c1414",
+  padding: "1.5rem",
+  borderRadius: "8px",
+  minWidth: "400px",
+  position: "relative" as const,
+};
+
+const summaryStyle = {
+  ...modalStyle,
+  minWidth: "500px",
+  maxHeight: "80vh",
+  overflowY: "auto" as const,
+};
+
+const closeBtnStyle = {
+  position: "absolute" as const,
+  top: "8px",
+  right: "12px",
+  background: "transparent",
+  border: "none",
+  color: "#aaa",
+  fontSize: "22px",
+  cursor: "pointer",
 };
