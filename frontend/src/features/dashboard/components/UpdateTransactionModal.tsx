@@ -2,18 +2,20 @@ import { useState, useContext } from "react";
 import type { ChangeEvent, KeyboardEvent } from "react";
 import api from "../../../services/apiClient";
 import { AuthContext } from "../../auth/AuthContext";
-import type {  Transaction } from "../schemas/transaction";
-import type { OnCloseProps } from "../../../../utility"
+import type { Transaction, Category } from "../schemas/transaction";
+import type { OnCloseProps } from "../../../../utility";
+import { formatCurrency } from "../../../../utility";
 
 export default function UpdateTransaction({ onClose }: OnCloseProps) {
   const { user } = useContext(AuthContext);
-  const userId = user!.id; // Assuming the user ID is stored in the AuthContext
+  const userId = user!.id;
 
   const token = localStorage.getItem("access_token");
   const tokenType = localStorage.getItem("token_type");
 
   const [transactionId, setTransactionId] = useState<string>("");
   const [transaction, setTransaction] = useState<Transaction | null>(null);
+  const [categories, setCategories] = useState<Category[]>([]);
 
   const [form, setForm] = useState({
     description: "",
@@ -39,22 +41,27 @@ export default function UpdateTransaction({ onClose }: OnCloseProps) {
     try {
       setLoading(true);
 
-      const res = await api.get(`api/transactions/${idNum}`, {
-        headers: { Authorization: `${tokenType} ${token}` }
-      });
+      const [transRes, catRes] = await Promise.all([
+        api.get(`api/transactions/${idNum}`, {
+          headers: { Authorization: `${tokenType} ${token}` },
+        }),
+        api.get("api/categories/"),
+      ]);
 
-      const fetched = res.data;
-
-      // Only allow the transaction's owner (userId) to update the transaction
-      if (fetched.user_id !== userId) {
+      const fetchedTrans = transRes.data;
+      const fetchedCat = catRes.data;
+      
+      if (fetchedTrans.user_id !== userId) {
         setError("You do not have permission to update this transaction.");
         return;
       }
 
-      setTransaction(fetched);
+      setTransaction(fetchedTrans);
+      setCategories(fetchedCat);
+
       setForm({
-        description: fetched.description ?? "",
-        transaction_date: fetched.transaction_date
+        description: fetchedTrans.description ?? "",
+        transaction_date: fetchedTrans.transaction_date
       });
 
     } catch {
@@ -64,14 +71,18 @@ export default function UpdateTransaction({ onClose }: OnCloseProps) {
     }
   };
 
-  // --- Handle Enter key on ID input ---
+
+  const getCategoryName = (id: number) => {
+    const found = categories.find((c) => c.id === id);
+    return found ? found.name : "Unknown";
+  };
+
   const handleKeyPress = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       handleFetch();
     }
   };
 
-  // --- Form change ---
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setForm(prev => ({
@@ -80,7 +91,6 @@ export default function UpdateTransaction({ onClose }: OnCloseProps) {
     }));
   };
 
-  // --- Proceed to confirmation ---
   const handleProceed = () => {
     if (!transaction) return;
 
@@ -203,8 +213,8 @@ export default function UpdateTransaction({ onClose }: OnCloseProps) {
             {transaction && (
               <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
                 <p><strong>ID:</strong> {transactionId}</p>
-                <p><strong>Amount:</strong> ₱{transaction.amount}</p>
-                <p><strong>Category:</strong> {transaction.category_id}</p>
+                <p><strong>Amount:</strong> {formatCurrency(transaction.amount)}</p>
+                <p><strong>Category:</strong> {getCategoryName(transaction.category_id)}</p>
                 <p><strong>Type:</strong> {transaction.transaction_type}</p>
 
                 <div style={{ display: "flex", justifyContent: "space-between" }}>

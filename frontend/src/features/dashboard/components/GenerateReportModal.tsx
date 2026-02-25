@@ -194,6 +194,8 @@ export default function GenerateReportModal({ onClose }: OnCloseProps) {
             <p><strong>Date Range:</strong> {formatDate(reportResult.report.start_date)} → {formatDate(reportResult.report.end_date)}</p>
             <p><strong>Generated At:</strong> {formatDate(reportResult.report.created_at)}</p>
 
+            <div style={{ marginTop: "1rem", fontWeight: "bold", borderTop: "1px solid #aaa", paddingTop: "0.5rem" }}></div>
+
             <hr style={{ opacity: 0.3 }} />
 
             {Object.entries(groupedData).map(([period, items], idx) => (

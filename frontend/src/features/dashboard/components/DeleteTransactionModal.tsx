@@ -2,8 +2,10 @@ import { useState, useContext } from "react";
 import type { KeyboardEvent } from "react";
 import api from "../../../services/apiClient";
 import { AuthContext } from "../../auth/AuthContext";
-import type { Transaction } from "../schemas/transaction";
+import type { Transaction, Category } from "../schemas/transaction";
 import type { OnCloseProps } from "../../../../utility"
+import { formatCurrency } from "../../../../utility";
+import type {  } from "../schemas/transaction";
 
 export default function DeleteTransaction({ onClose }: OnCloseProps) {
   const { user } = useContext(AuthContext);
@@ -19,6 +21,7 @@ export default function DeleteTransaction({ onClose }: OnCloseProps) {
 
   const [transactionId, setTransactionId] = useState<string>("");
   const [transaction, setTransaction] = useState<Transaction | null>(null);
+  const [categories, setCategories] = useState<Category[]>([]);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -39,19 +42,29 @@ export default function DeleteTransaction({ onClose }: OnCloseProps) {
     try {
       setLoading(true);
 
-      const res = await api.get(`api/transactions/${idNum}`, {
-        headers: { Authorization: `${tokenType} ${token}` }
-      });
+      const [transRes, catRes] = await Promise.all([
+        api.get(`api/transactions/${idNum}`, {
+          headers: { Authorization: `${tokenType} ${token}` },
+        }),
+        api.get("api/categories/"),
+      ]);
 
-      const fetched = res.data;
+      const fetchedTrans = transRes.data;
+      const fetchedCat = catRes.data;
 
-      setTransaction(fetched);
+      setTransaction(fetchedTrans);
+      setCategories(fetchedCat);
 
     } catch {
       setError("Transaction not found.");
     } finally {
       setLoading(false);
     }
+  };
+
+  const getCategoryName = (id: number) => {
+    const found = categories.find((c) => c.id === id);
+    return found ? found.name : "Unknown";
   };
 
   // --- Handle Enter key on ID input ---
@@ -169,8 +182,8 @@ export default function DeleteTransaction({ onClose }: OnCloseProps) {
             {transaction && (
               <div style={{ marginBottom: "1rem" }}>
                 <p><strong>ID:</strong> {transactionId}</p>
-                <p><strong>Amount:</strong> ₱{transaction.amount}</p>
-                <p><strong>Category:</strong> {transaction.category_id}</p>
+                <p><strong>Amount:</strong> {formatCurrency(transaction.amount)}</p>
+                <p><strong>Category:</strong> {getCategoryName(transaction.category_id)}</p>
                 <p><strong>Type:</strong> {transaction.transaction_type}</p>
                 <p><strong>Description:</strong> {transaction.description}</p>
                 <p><strong>Date: </strong> {transaction.transaction_date}</p>
@@ -232,8 +245,8 @@ export default function DeleteTransaction({ onClose }: OnCloseProps) {
             <p><strong>DELETE ID:</strong> {transactionId}</p>
 
             <div style={{ marginBottom: "1rem" }}>
-              <p><strong>Amount:</strong> ₱{transaction.amount}</p>
-              <p><strong>Category:</strong> {transaction.category_id}</p>
+                <p><strong>Amount:</strong> {formatCurrency(transaction.amount)}</p>
+                <p><strong>Category:</strong> {getCategoryName(transaction.category_id)}</p>
               <p><strong>Type:</strong> {transaction.transaction_type}</p>
               <p><strong>Description:</strong> {transaction.description}</p>
               <p><strong>Date: </strong> {transaction.transaction_date}</p>
