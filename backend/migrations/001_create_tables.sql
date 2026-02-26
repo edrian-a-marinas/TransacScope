@@ -67,21 +67,14 @@ CREATE TABLE users (
 
 CREATE TABLE public.categories (
     id SERIAL PRIMARY KEY,
-    name VARCHAR(100) NOT NULL UNIQUE,
+    name VARCHAR(100) NOT NULL,
     description TEXT,
-    created_at TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL DEFAULT now(),
-    type VARCHAR(20) NOT NULL CHECK (type IN ('Income', 'Expense')),
-    deleted_at TIMESTAMP WITHOUT TIME ZONE
+    created_at TIMESTAMP(0) NOT NULL DEFAULT now(),
+    type VARCHAR(20) NOT NULL,
+    deleted_at TIMESTAMP,
+    CONSTRAINT categories_type_check CHECK (type IN ('Income', 'Expense')),
+    CONSTRAINT categories_name_unique_active UNIQUE (name) WHERE deleted_at IS NULL
 );
-
--- Indexes
-CREATE UNIQUE INDEX categories_name_key ON public.categories(name);
-
--- Foreign Key constraint
-ALTER TABLE public.transactions
-    ADD CONSTRAINT transactions_category_id_fkey
-    FOREIGN KEY (category_id) REFERENCES public.categories(id)
-    ON DELETE SET NULL;
 
 
 
