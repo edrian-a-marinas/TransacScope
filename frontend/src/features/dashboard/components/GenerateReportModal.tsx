@@ -3,6 +3,7 @@ import api from "../../../services/apiClient";
 import { AuthContext } from "../../auth/AuthContext";
 import { formatDate, formatCurrency } from "../../../../utility";
 import type { ReportType, ReportResult, OnCloseProps } from "../schemas/report";
+import { generateReportPDF } from "./generateReportPdf";
 
 export default function GenerateReportModal({ reportMode, onClose }: OnCloseProps) {
   const { user } = useContext(AuthContext);
@@ -274,13 +275,18 @@ export default function GenerateReportModal({ reportMode, onClose }: OnCloseProp
                 paddingTop: "0.5rem"
               }}
             >
-              {overallTotal >= 0 ? "+" : "-"}{" "}
-              {formatCurrency(Math.abs(overallTotal))} (TOTAL Overall)
+              {/* Just call the formatCurrency function and display it, no need to add ₱ symbol again */}
+              {formatCurrency(overallTotal)} {" "} (Total Overall)
             </div>
 
             <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "1rem" }}>
               <button onClick={handleCloseSummary}>Close</button>
-              <button onClick={() => alert("DONT REMOVE THIS PLACEHOLDER ")}>
+              <button
+                onClick={() =>
+                  reportResult &&
+                  generateReportPDF({ reportResult, reportMode, viewMode })
+                }
+              >
                 Download PDF
               </button>
             </div>

@@ -24,12 +24,24 @@ export const formatDate = (date: string | null) => {
 
 
 export const formatCurrency = (value: number | string) => {
-  return new Intl.NumberFormat("en-PH", {
+  const numValue = Number(value);
+  const isNegative = numValue < 0;
+  const absoluteValue = Math.abs(numValue);
+
+  // Format the absolute value as currency (with the default currency symbol, but we will remove the symbol)
+  let formattedValue = new Intl.NumberFormat("en-PH", {
     style: "currency",
     currency: "PHP",
-  }).format(Number(value));
-};
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(absoluteValue);
 
+  // Remove the currency symbol (₱) from the formatted string
+  formattedValue = formattedValue.replace("₱", "");
+
+  // If the value is negative, prepend the minus sign before the formatted number
+  return isNegative ? `₱ -${formattedValue}` : `₱ ${formattedValue}`;
+};
 
 
 export type OnCloseProps = {
