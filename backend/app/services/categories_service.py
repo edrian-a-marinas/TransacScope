@@ -79,6 +79,9 @@ async def create_category(ctg, current_user_id: int, role):
 
   if role != "admin":
     return None
+  
+  if ctg.type not in ("Expense", "Income"):
+    raise ValueError("Category type must be 'Expense' or 'Income'")
 
   try:
     pool = await get_pool()
@@ -87,12 +90,13 @@ async def create_category(ctg, current_user_id: int, role):
 
         row = await conn.fetchrow(
           """
-          INSERT INTO categories (name, description)
-          VALUES ($1, $2)
-          RETURNING id, name, description, created_at
+          INSERT INTO categories (name, description, type)
+          VALUES ($1, $2, $3)
+          RETURNING id, name, description, type, created_at
           """,
           ctg.name,
-          ctg.description
+          ctg.description,
+          ctg.type
         )
 
         return dict(row) if row else None
@@ -130,12 +134,14 @@ async def update_category(ctg_id: int, ctg, current_user_id: int, role):
           UPDATE categories
           SET
             name = COALESCE($1, name),
-            description = COALESCE($2, description)
-          WHERE id = $3
-          RETURNING id, name, description, created_at
+            description = COALESCE($2, description),
+            type = COALESCE($3, type)
+          WHERE id = $4
+          RETURNING id, name, description, type, created_at
           """,
           ctg.name,
           ctg.description,
+          ctg.type,
           ctg_id
         )
 
@@ -156,11 +162,13 @@ async def update_category(ctg_id: int, ctg, current_user_id: int, role):
           current_user_id,
           json.dumps({
             "name": old["name"],
-            "description": old["description"]
+            "description": old["description"],
+            "type": old["type"]
           }),
           json.dumps({
             "name": updated["name"],
-            "description": updated["description"]
+            "description": updated["description"],
+            "type": updated["type"]
           })
         )
 
