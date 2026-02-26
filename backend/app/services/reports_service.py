@@ -19,9 +19,9 @@ async def _generate_summary(conn, start_date, end_date, user_id=None, daily=Fals
     # Build type filter condition
     type_condition = ""
     if transaction_filter.lower() == "income":
-      type_condition = "AND c.type = 'Income'"
+      type_condition = "AND t.transaction_type = 'Income'"
     elif transaction_filter.lower() == "expense":
-      type_condition = "AND c.type = 'Expense'"
+      type_condition = "AND t.transaction_type = 'Expense'"
     # else combined = no extra filter
 
     # --------- DAILY ----------
@@ -32,14 +32,16 @@ async def _generate_summary(conn, start_date, end_date, user_id=None, daily=Fals
           SELECT 
             t.transaction_date AS date,
             c.name AS category_name,
-            SUM(t.amount) AS total_amount
+            t.transaction_type,
+            SUM(t.amount) AS total_amount,
+            COUNT(*) AS entry_count
           FROM transactions t
           JOIN categories c ON c.id = t.category_id
           WHERE t.transaction_date BETWEEN $1 AND $2
             AND t.user_id = $3
             AND t.deleted_at IS NULL
             {type_condition}
-          GROUP BY t.transaction_date, c.name
+          GROUP BY t.transaction_date, c.name, t.transaction_type
           ORDER BY t.transaction_date, total_amount DESC
           """,
           start_date,
@@ -52,20 +54,25 @@ async def _generate_summary(conn, start_date, end_date, user_id=None, daily=Fals
           SELECT 
             t.transaction_date AS date,
             c.name AS category_name,
-            SUM(t.amount) AS total_amount
+            t.transaction_type,
+            SUM(t.amount) AS total_amount,
+            COUNT(*) AS entry_count
           FROM transactions t
           JOIN categories c ON c.id = t.category_id
           WHERE t.transaction_date BETWEEN $1 AND $2
             AND t.deleted_at IS NULL
             {type_condition}
-          GROUP BY t.transaction_date, c.name
+          GROUP BY t.transaction_date, c.name, t.transaction_type
           ORDER BY t.transaction_date, total_amount DESC
           """,
           start_date,
           end_date
         )
 
-      summaries = [dict(r, date=str(r["date"])) for r in rows]
+      summaries = [
+        dict(row, date=str(row["date"]))
+        for row in rows
+      ]
 
     # --------- WEEKLY ----------
     elif weekly:
@@ -77,15 +84,18 @@ async def _generate_summary(conn, start_date, end_date, user_id=None, daily=Fals
         if user_id:
           rows = await conn.fetch(
             f"""
-            SELECT c.name AS category_name,
-                   SUM(t.amount) AS total_amount
+            SELECT 
+              c.name AS category_name,
+              t.transaction_type,
+              SUM(t.amount) AS total_amount,
+              COUNT(*) AS entry_count
             FROM transactions t
             JOIN categories c ON c.id = t.category_id
             WHERE t.transaction_date BETWEEN $1 AND $2
               AND t.user_id = $3
               AND t.deleted_at IS NULL
               {type_condition}
-            GROUP BY c.name
+            GROUP BY c.name, t.transaction_type
             ORDER BY total_amount DESC
             """,
             current_start,
@@ -95,22 +105,31 @@ async def _generate_summary(conn, start_date, end_date, user_id=None, daily=Fals
         else:
           rows = await conn.fetch(
             f"""
-            SELECT c.name AS category_name,
-                   SUM(t.amount) AS total_amount
+            SELECT 
+              c.name AS category_name,
+              t.transaction_type,
+              SUM(t.amount) AS total_amount,
+              COUNT(*) AS entry_count
             FROM transactions t
             JOIN categories c ON c.id = t.category_id
             WHERE t.transaction_date BETWEEN $1 AND $2
               AND t.deleted_at IS NULL
               {type_condition}
-            GROUP BY c.name
+            GROUP BY c.name, t.transaction_type
             ORDER BY total_amount DESC
             """,
             current_start,
             current_end
           )
 
-        for r in rows:
-          summaries.append(dict(r, week_start=str(current_start), week_end=str(current_end)))
+        for row in rows:
+          summaries.append(
+            dict(
+              row,
+              week_start=str(current_start),
+              week_end=str(current_end)
+            )
+          )
 
         current_start = current_end + timedelta(days=1)
 
@@ -119,15 +138,18 @@ async def _generate_summary(conn, start_date, end_date, user_id=None, daily=Fals
       if user_id:
         rows = await conn.fetch(
           f"""
-          SELECT c.name AS category_name,
-                 SUM(t.amount) AS total_amount
+          SELECT 
+            c.name AS category_name,
+            t.transaction_type,
+            SUM(t.amount) AS total_amount,
+            COUNT(*) AS entry_count
           FROM transactions t
           JOIN categories c ON c.id = t.category_id
           WHERE t.transaction_date BETWEEN $1 AND $2
             AND t.user_id = $3
             AND t.deleted_at IS NULL
             {type_condition}
-          GROUP BY c.name
+          GROUP BY c.name, t.transaction_type
           ORDER BY total_amount DESC
           """,
           start_date,
@@ -137,21 +159,24 @@ async def _generate_summary(conn, start_date, end_date, user_id=None, daily=Fals
       else:
         rows = await conn.fetch(
           f"""
-          SELECT c.name AS category_name,
-                 SUM(t.amount) AS total_amount
+          SELECT 
+            c.name AS category_name,
+            t.transaction_type,
+            SUM(t.amount) AS total_amount,
+            COUNT(*) AS entry_count
           FROM transactions t
           JOIN categories c ON c.id = t.category_id
           WHERE t.transaction_date BETWEEN $1 AND $2
             AND t.deleted_at IS NULL
             {type_condition}
-          GROUP BY c.name
+          GROUP BY c.name, t.transaction_type
           ORDER BY total_amount DESC
           """,
           start_date,
           end_date
         )
 
-      summaries = [dict(r) for r in rows]
+      summaries = [dict(row) for row in rows]
 
     return summaries
 

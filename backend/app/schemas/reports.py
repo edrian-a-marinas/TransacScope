@@ -27,6 +27,8 @@ class ReportRead(ReportBase):
 class ReportSummaryItem(BaseModel):
   category_name: str
   total_amount: float
+  transaction_type: Literal["Expense", "Income"]
+  entry_count: Optional[int] = 1
   date: Optional[str] = None
   week_start: Optional[str] = None
   week_end: Optional[str] = None
