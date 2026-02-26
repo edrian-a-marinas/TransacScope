@@ -154,6 +154,42 @@ async def get_transaction_history(current_user_id, role):
     raise
 
 
+async def count_transactions_by_category(category_id: int, current_user_id: int, role):
+  try:
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+
+      if role == "admin" or role == 1:
+        count = await conn.fetchval(
+          """
+          SELECT COUNT(*)
+          FROM transactions
+          WHERE category_id = $1
+            AND deleted_at IS NULL
+          """,
+          category_id
+        )
+      else:
+        count = await conn.fetchval(
+          """
+          SELECT COUNT(*)
+          FROM transactions
+          WHERE category_id = $1
+            AND user_id = $2
+            AND deleted_at IS NULL
+          """,
+          category_id,
+          current_user_id
+        )
+
+      return count or 0
+
+  except Exception:
+    logger.exception("Error counting transactions by category")
+    raise
+
+
+
 # CREATE
 async def create_transaction(tx, current_user_id: int):
   try:

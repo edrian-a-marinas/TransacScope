@@ -25,6 +25,19 @@ async def get_transaction_history(user_data: Tuple[int, str] = Depends(get_user_
 
   return rows
 
+@router.get("/count-by-category/{category_id}")
+async def count_transactions_by_category(category_id: int, user_data: Tuple[int, str] = Depends(get_user_id_and_role)):
+
+  CURRENT_USER_ID, role = user_data
+
+  count = await transactions_service.count_transactions_by_category(
+    category_id,
+    CURRENT_USER_ID,
+    role
+  )
+
+  return {"count": count}
+
 
 @router.get("/", response_model=List[TransactionRead])
 async def get_transactions(user_data: Tuple[int, str] = Depends(get_user_id_and_role)):

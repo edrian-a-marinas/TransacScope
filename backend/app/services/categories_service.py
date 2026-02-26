@@ -14,6 +14,7 @@ async def get_categories():
         """
         SELECT * 
         FROM categories
+        WHERE deleted_at IS NULL
         """
       )
       return [dict(row) for row in rows]
