@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+export type ModalStep = "list" | "add" | "confirmAdd" | "edit" | "deleteConfirm";
+
 // schema for category validation
 export const categorySchema = z.object({
   name: z.string().min(1, { message: "Name is required" }),
