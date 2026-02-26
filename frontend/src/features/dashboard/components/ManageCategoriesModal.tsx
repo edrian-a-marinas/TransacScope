@@ -16,6 +16,10 @@ export default function ManageCategories({ onClose }: OnCloseProps) {
   const token = localStorage.getItem("access_token");
   const tokenType = localStorage.getItem("token_type");
 
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [transactionUsageCount, setTransactionUsageCount] = useState<number | null>(null);
+  const [showUsageCheck, setShowUsageCheck] = useState(false);
+
   const [categories, setCategories] = useState<CategoryRead[]>([]);
   const [loading, setLoading] = useState(true);
   const [step, setStep] = useState<ModalStep>("list");
@@ -99,6 +103,29 @@ export default function ManageCategories({ onClose }: OnCloseProps) {
     if (!user || userRole !== 1) return alert("Not authorized");
     if (!selectedCategory) return;
 
+    setDeleteLoading(true);
+
+    try {
+      // Fetch how many transactions use this category
+      const res = await api.get(
+        `api/transactions/count-by-category/${selectedCategory.id}`,
+        {
+          headers: { Authorization: `${tokenType} ${token}` }
+        }
+      );
+
+      setTransactionUsageCount(res.data.count);
+      setShowUsageCheck(true);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
+  const handleFinalDelete = async () => {
+    if (!selectedCategory || !user || userRole !== 1) return;
+
     try {
       await api.delete(`api/categories/${selectedCategory.id}`, {
         headers: { Authorization: `${tokenType} ${token}` }
@@ -107,7 +134,8 @@ export default function ManageCategories({ onClose }: OnCloseProps) {
       setCategories(categories.filter(c => c.id !== selectedCategory.id));
       setStep("list");
       setSelectedCategory(null);
-      alert("DELETED A CATEGORY!");
+      setTransactionUsageCount(null);
+      setShowUsageCheck(false);
     } catch (err) {
       console.error(err);
     }
@@ -331,7 +359,7 @@ export default function ManageCategories({ onClose }: OnCloseProps) {
           </>
         )}
 
-        {step === "deleteConfirm" && selectedCategory && (
+        {step === "deleteConfirm" && selectedCategory && !showUsageCheck && (
           <>
             <h2 style={{ textAlign: "center" }}>Delete Category</h2>
             <p>Are you sure you want to delete this category?</p>
@@ -342,7 +370,33 @@ export default function ManageCategories({ onClose }: OnCloseProps) {
             </div>
             <div style={{ display: "flex", justifyContent: "space-between" }}>
               <button onClick={handleBack}>Cancel</button>
-              <button onClick={handleDelete}>Delete</button>
+              <button onClick={handleDelete} disabled={deleteLoading}>
+                {deleteLoading ? "Checking..." : "Delete"}
+              </button>
+            </div>
+          </>
+        )}
+
+
+        {step === "deleteConfirm" && selectedCategory && showUsageCheck && (
+          <>
+            <h2 style={{ textAlign: "center" }}>Delete Category</h2>
+
+            {transactionUsageCount && transactionUsageCount > 0 ? (
+              <p style={{ color: "red", fontWeight: "bold" }}>
+                WARNING: This category is used by {transactionUsageCount} transactions.
+                <br />
+                (Transactions will NOT be deleted. Only the category.)
+              </p>
+            ) : (
+              <p style={{ color: "lightgreen", fontWeight: "bold" }}>
+                This category is not used by any transactions. Safe to delete.
+              </p>
+            )}
+
+            <div style={{ display: "flex", justifyContent: "space-between", marginTop: "1rem" }}>
+              <button onClick={handleBack}>Cancel</button>
+              <button onClick={handleFinalDelete}>Delete</button>
             </div>
           </>
         )}
