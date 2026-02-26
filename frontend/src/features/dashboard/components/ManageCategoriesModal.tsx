@@ -271,26 +271,47 @@ export default function ManageCategories({ onClose }: OnCloseProps) {
               </div>
             )}
 
-            <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-              <input
-                type="text"
-                name="name"
-                placeholder="Name"
-                value={formData.name}
-                onChange={handleChange}
-              />
-              <input
-                type="text"
-                name="description"
-                placeholder="Description"
-                value={formData.description}
-                onChange={handleChange}
-              />
-              <select name="type" value={formData.type} onChange={handleChange}>
-                <option value="">Select Type</option>
-                <option value="Income">Income</option>
-                <option value="Expense">Expense</option>
-              </select>
+            <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <label htmlFor="type" style={{ width: "120px" }}>Type:</label>
+                <select
+                  name="type"
+                  id="type"
+                  value={formData.type}
+                  onChange={handleChange}
+                  style={{ padding: "0.5rem", borderRadius: "4px", flex: 1 }}
+                >
+                  <option value="">Select Type</option>
+                  <option value="Income">Income</option>
+                  <option value="Expense">Expense</option>
+                </select>
+              </div>
+
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <label htmlFor="name" style={{ width: "120px" }}>Name:</label>
+                <input
+                  type="text"
+                  name="name"
+                  id="name"
+                  placeholder="Category Name"
+                  value={formData.name}
+                  onChange={handleChange}
+                  style={{ padding: "0.5rem", borderRadius: "4px", flex: 1 }}
+                />
+              </div>
+
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <label htmlFor="description" style={{ width: "120px" }}>Description:</label>
+                <input
+                  type="text"
+                  name="description"
+                  id="description"
+                  placeholder="Category Description"
+                  value={formData.description}
+                  onChange={handleChange}
+                  style={{ padding: "0.5rem", borderRadius: "4px", flex: 1 }}
+                />
+              </div>
 
               <div style={{ display: "flex", justifyContent: "space-between" }}>
                 <button onClick={handleBack}>Back</button>
@@ -299,7 +320,26 @@ export default function ManageCategories({ onClose }: OnCloseProps) {
                 {step === "add" ? (
                   <button onClick={handleAddNext}>Add Category</button>
                 ) : (
-                  <button onClick={() => setShowEditConfirmation(true)}>Edit</button>
+                    <button
+                      onClick={() => {
+                        if (!selectedCategory) return;
+
+                        const noChanges =
+                          formData.name === selectedCategory.name &&
+                          formData.description === (selectedCategory.description || "") &&
+                          formData.type === selectedCategory.type;
+
+                        if (noChanges) {
+                          setErrors(["Nothing to update."]);
+                          return;
+                        }
+
+                        setErrors([]);
+                        setShowEditConfirmation(true);
+                      }}
+                    >
+                      Edit
+                    </button>
                 )}
               </div>
             </div>
