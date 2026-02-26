@@ -7,23 +7,28 @@ import logging
 logger = logging.getLogger(__name__)
 
 # --------- CORE SUMMARY LOGIC ----------
-async def _generate_summary(conn, start_date, end_date, user_id=None, daily=False, weekly=False):
+async def _generate_summary(conn, start_date, end_date, user_id=None, daily=False, weekly=False, transaction_filter: str = "both"):
   """
-  Generates summary aggregation for given date range.
-  daily=True  -> daily split summary
-  weekly=True -> weekly split summary
-  otherwise   -> monthly/total summary
+  transaction_filter: "income" | "expense" | "both"
   """
   summaries = []
 
   try:
     from datetime import timedelta
 
+    # Build type filter condition
+    type_condition = ""
+    if transaction_filter.lower() == "income":
+      type_condition = "AND c.type = 'Income'"
+    elif transaction_filter.lower() == "expense":
+      type_condition = "AND c.type = 'Expense'"
+    # else both = no extra filter
+
     # --------- DAILY ----------
     if daily:
       if user_id:
         rows = await conn.fetch(
-          """
+          f"""
           SELECT 
             t.transaction_date AS date,
             c.name AS category_name,
@@ -33,6 +38,7 @@ async def _generate_summary(conn, start_date, end_date, user_id=None, daily=Fals
           WHERE t.transaction_date BETWEEN $1 AND $2
             AND t.user_id = $3
             AND t.deleted_at IS NULL
+            {type_condition}
           GROUP BY t.transaction_date, c.name
           ORDER BY t.transaction_date, total_amount DESC
           """,
@@ -42,7 +48,7 @@ async def _generate_summary(conn, start_date, end_date, user_id=None, daily=Fals
         )
       else:
         rows = await conn.fetch(
-          """
+          f"""
           SELECT 
             t.transaction_date AS date,
             c.name AS category_name,
@@ -51,6 +57,7 @@ async def _generate_summary(conn, start_date, end_date, user_id=None, daily=Fals
           JOIN categories c ON c.id = t.category_id
           WHERE t.transaction_date BETWEEN $1 AND $2
             AND t.deleted_at IS NULL
+            {type_condition}
           GROUP BY t.transaction_date, c.name
           ORDER BY t.transaction_date, total_amount DESC
           """,
@@ -69,7 +76,7 @@ async def _generate_summary(conn, start_date, end_date, user_id=None, daily=Fals
 
         if user_id:
           rows = await conn.fetch(
-            """
+            f"""
             SELECT c.name AS category_name,
                    SUM(t.amount) AS total_amount
             FROM transactions t
@@ -77,6 +84,7 @@ async def _generate_summary(conn, start_date, end_date, user_id=None, daily=Fals
             WHERE t.transaction_date BETWEEN $1 AND $2
               AND t.user_id = $3
               AND t.deleted_at IS NULL
+              {type_condition}
             GROUP BY c.name
             ORDER BY total_amount DESC
             """,
@@ -86,13 +94,14 @@ async def _generate_summary(conn, start_date, end_date, user_id=None, daily=Fals
           )
         else:
           rows = await conn.fetch(
-            """
+            f"""
             SELECT c.name AS category_name,
                    SUM(t.amount) AS total_amount
             FROM transactions t
             JOIN categories c ON c.id = t.category_id
             WHERE t.transaction_date BETWEEN $1 AND $2
               AND t.deleted_at IS NULL
+              {type_condition}
             GROUP BY c.name
             ORDER BY total_amount DESC
             """,
@@ -109,7 +118,7 @@ async def _generate_summary(conn, start_date, end_date, user_id=None, daily=Fals
     else:
       if user_id:
         rows = await conn.fetch(
-          """
+          f"""
           SELECT c.name AS category_name,
                  SUM(t.amount) AS total_amount
           FROM transactions t
@@ -117,6 +126,7 @@ async def _generate_summary(conn, start_date, end_date, user_id=None, daily=Fals
           WHERE t.transaction_date BETWEEN $1 AND $2
             AND t.user_id = $3
             AND t.deleted_at IS NULL
+            {type_condition}
           GROUP BY c.name
           ORDER BY total_amount DESC
           """,
@@ -126,13 +136,14 @@ async def _generate_summary(conn, start_date, end_date, user_id=None, daily=Fals
         )
       else:
         rows = await conn.fetch(
-          """
+          f"""
           SELECT c.name AS category_name,
                  SUM(t.amount) AS total_amount
           FROM transactions t
           JOIN categories c ON c.id = t.category_id
           WHERE t.transaction_date BETWEEN $1 AND $2
             AND t.deleted_at IS NULL
+            {type_condition}
           GROUP BY c.name
           ORDER BY total_amount DESC
           """,
@@ -150,11 +161,9 @@ async def _generate_summary(conn, start_date, end_date, user_id=None, daily=Fals
 
 
 # --------- PUBLIC API ----------
-async def generate_report(report, current_user_id: int, role: str):
+async def generate_report(report, current_user_id: int, role: str, transaction_filter: str = "both"):
   """
-  payload: ReportCreate schema
-  Admins can generate reports for all users (if role=="admin").
-  Standard users can generate reports only for themselves.
+  transaction_filter: "income" | "expense" | "both"
   """
   try:
     pool = await get_pool()
@@ -173,7 +182,8 @@ async def generate_report(report, current_user_id: int, role: str):
           report.end_date,
           user_id=user_id_filter,
           daily=daily,
-          weekly=weekly
+          weekly=weekly,
+          transaction_filter=transaction_filter
         )
 
         # Insert report history

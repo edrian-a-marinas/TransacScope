@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Query
 from typing import Tuple
 from app.auth.format_role import get_user_id_and_role
 from app.services import reports_service
@@ -8,11 +8,16 @@ router = APIRouter(prefix="/api/reports")
 
 
 @router.post("/", response_model=ReportResult)
-async def generate_report(payload: ReportCreate, user_data: Tuple[int, str] = Depends(get_user_id_and_role)):
+async def generate_report(
+  payload: ReportCreate, 
+  transaction_type: str = Query("both", enum=["income","expense","both"]),
+  user_data: Tuple[int, str] = Depends(get_user_id_and_role
+)):
     
   CURRENT_USER_ID, role = user_data
 
-  result = await reports_service.generate_report(payload, CURRENT_USER_ID, role)
+  result = await reports_service.generate_report(payload, CURRENT_USER_ID, role, transaction_filter=transaction_type)
+  
   if not result:
     raise HTTPException(status_code=400, detail="Report generation failed")
 
