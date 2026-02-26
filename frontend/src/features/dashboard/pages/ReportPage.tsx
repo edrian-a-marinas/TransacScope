@@ -1,12 +1,19 @@
 import { useState, useContext } from "react";
 import { AuthContext } from "../../auth/AuthContext";
-import GenerateReportModal from "../components/GenerateReportModal";
+
+import {
+  ExpenseReportModal
+  //IncomeReportModal,
+  //CombinedReportModal,
+} from "../components";
 
 export default function ReportsPage() {
   const { user } = useContext(AuthContext);
   const userRole = user!.role_id;
 
-  const [showGenerateModal, setShowGenerateModal] = useState(false);
+  const [showIncomeModal, setShowIncomeModal] = useState(false);
+  const [showExpenseReport, setShowExpenseReport] = useState(false);
+  const [showCombinedModal, setShowCombinedModal] = useState(false);
 
   return (
     <div>
@@ -19,9 +26,13 @@ export default function ReportsPage() {
           : "Your Personal Report"}
       </h3>
 
-      <button onClick={() => setShowGenerateModal(true)}>Generate Report</button>
-
-      {showGenerateModal && <GenerateReportModal onClose={() => setShowGenerateModal(false)} />}
+      <button onClick={() => setShowIncomeModal(true)}>Income Report</button>
+      <button onClick={() => setShowExpenseReport(true)}>Expense Report</button>
+      <button onClick={() => setShowCombinedModal(true)}>Combined Report</button>
+        
+      {/* showIncomeModal && <IncomeReportModal onClose={() => setShowIncomeModal(false)} /> */}
+      {showExpenseReport && <ExpenseReportModal onClose={() => setShowExpenseReport(false)} />}
+      {/* showCombinedModal && <CombinedReportModal onClose={() => setShowCombinedModal(false)} />*/}
     </div>
   );
 }

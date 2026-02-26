@@ -21,14 +21,19 @@ Expense categories for the business:
 Operating Overhead:  miscellaneous expenses (rent, ELectricity, Internet, Water) // daily cost
 Inventory & Supplies: Consumables and short-term items (food & beverages for resale, cleaning supplies, stock peripherals)
 Salary: Payments to employees (technicians, staff, attendants)
-Equipment & Assets: Long-term investments (new computers, upgrades, gaming chairs, routers/switches)
+Equipment & Assets: Long-term investments (new computers, upgrades, gaming chairs, routers/switches, doors)
 Marketing & Advertising: (Social media ads, outdoor banners, promotional events)
-Other Business Costs: Customizable by super admin and admin. they can amange all categories
+Other Business Expense: Customizable by super admin and admin. they can amange all categories
 
 
 Income categories for the business:
-xxxxx: xxxxxxx (xxxx, xxxx, xxx etc)
-etc
+Standard Room Usage: regular computer rental income (hourly gaming, internet browsing)
+VIP Room Usage: premium room rental income (private room access, high-end PC usage)
+Digital Top-Up / Game Load: commission-based digital sales (game credits, prepaid load, e-wallet top-ups)
+Food & Beverage: in-store product sales (snacks, instant meals, soft drinks)
+Tournaments: event-based gaming revenue (registration fees, sponsorship shares)
+Other Business Income: Customizable by super admin and admin. they can amange all categories
+
 
 Workflow with users and admin: 
 Roles are fixed for demo: 1 Super Admin, 1 Admin, 5 Standard Users (possibly1 standard user per categories, but no stricly).
