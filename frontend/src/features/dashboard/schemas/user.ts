@@ -19,8 +19,6 @@ export type ReadUserWithCount = ReadUser & {
 
 export type ViewMode = "all" | "admin" | "standard";
 
-
-
 export type PromoteUserPayload = {
   role_id: 1 | 2;
 };
@@ -30,3 +28,4 @@ export type PromoteUserResponse = {
 };
 
 export type PromoteViewMode = "all" | "admin" | "standard";
+

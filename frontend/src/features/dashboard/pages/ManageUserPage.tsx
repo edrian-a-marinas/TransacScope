@@ -53,16 +53,15 @@ export default function ManageUsersPage() {
 
         <li>
           <button onClick={() => setShowDetailsModal(true)}>
-            View User Details  {/* Admin + Super Admin  Put the FOR SUPER ADMIN only soft and restore account here. */}
+            View User Details
           </button> 
         </li>
       </ul>
 
       {showReadModal && (<ReadUsers onClose={() => setShowReadModal(false)} />)}
       {showPromoteModal && (<PromoteUser onClose={() => setShowPromoteModal(false)} />)}
-      {showDetailsModal && (<UserDetails onClose={() => setShowDetailsModal(false)} />)}
       {showHandleRequestModal && (<HandleDeletionRequest onClose={() => setShowHandleRequestModal(false)} />)}
-
+      {showDetailsModal && (<UserDetails onClose={() => setShowDetailsModal(false)} />)}
     </div>
   );
 }
