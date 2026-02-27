@@ -184,7 +184,7 @@ async def get_all_users():
             ON t.user_id = u.id 
             AND t.deleted_at IS NULL
         GROUP BY u.id
-        ORDER BY u.created_at DESC
+        ORDER BY transaction_count DESC
         """
       )
       return [dict(row) for row in rows]
