@@ -191,22 +191,61 @@ async def create_transaction_deletion_request(tx_id: int, requested_by: int):
 
 
 # LIST all pending deletion requests (for admin)
+
 async def get_deletion_requests():
-  try:
-    pool = await get_pool()
-    async with pool.acquire() as conn:
-      rows = await conn.fetch(
-        """
-        SELECT *
-        FROM transaction_deletion_requests
-        WHERE status = 'pending'
-        ORDER BY requested_at DESC
-        """
-      )
-      return [dict(row) for row in rows]
-  except Exception:
-    logger.exception("Error fetching deletion requests")
-    raise
+    try:
+        pool = await get_pool()
+        async with pool.acquire() as conn:
+            rows = await conn.fetch(
+                """
+                SELECT 
+                    dr.*,
+                    u.first_name,
+                    u.last_name,
+                    t.amount,
+                    t.transaction_type,
+                    t.category_id,
+                    t.description,
+                    t.transaction_date,
+                    c.name AS category_name
+                FROM transaction_deletion_requests dr
+                JOIN users u ON u.id = dr.requested_by
+                LEFT JOIN transactions t ON t.id = dr.transaction_id
+                LEFT JOIN categories c ON c.id = t.category_id
+                WHERE dr.status = 'pending'
+                ORDER BY dr.requested_at DESC
+                """
+            )
+
+            result = []
+            for row in rows:
+                data = dict(row)
+                # requester info
+                data["requester"] = {
+                    "first_name": data.pop("first_name"),
+                    "last_name": data.pop("last_name"),
+                }
+                # transaction info
+                if data.get("amount") is not None:
+                    data["transaction"] = {
+                        "id": data["transaction_id"],
+                        "amount": data.pop("amount"),
+                        "transaction_type": data.pop("transaction_type"),
+                        "category_id": data.pop("category_id"),
+                        "description": data.pop("description"),
+                        "transaction_date": data.pop("transaction_date"),
+                        "category_name": data.pop("category_name"),
+                    }
+                else:
+                    data["transaction"] = None
+
+                result.append(data)
+
+            return result
+
+    except Exception:
+        logger.exception("Error fetching deletion requests")
+        raise
 
 
 # PATCH: approve/reject deletion request (admin only)

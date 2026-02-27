@@ -10,7 +10,8 @@ from app.schemas.transactions import (
   TransactionRead,
   TransactionHistoryRead, 
   TransactionDeletionRequestCreate,
-  TransactionDeletionRequestRead
+  TransactionDeletionRequestRead,
+  ReviewDeletionRequestPayload
 )
 
 router = APIRouter(
@@ -39,6 +40,32 @@ async def count_transactions_by_category(category_id: int, user_data: Tuple[int,
   )
 
   return {"count": count}
+
+@router.post("/request-deletion", response_model=TransactionDeletionRequestRead)
+async def request_transaction_deletion(
+  payload: TransactionDeletionRequestCreate,
+  user_data: Tuple[int, str] = Depends(get_user_id_and_role)
+):
+  CURRENT_USER_ID, role = user_data
+  if role == "admin" or role == 1:
+    raise HTTPException(status_code=403, detail="Admins cannot request deletion")
+
+  row = await transactions_service.create_transaction_deletion_request(
+    payload.transaction_id,
+    CURRENT_USER_ID
+  )
+
+  if not row:
+    raise HTTPException(status_code=400, detail="Pending deletion request already exists")
+  return row
+
+
+@router.get("/deletion-requests", response_model=List[TransactionDeletionRequestRead])
+async def get_deletion_requests(user_data: Tuple[int, str] = Depends(get_user_id_and_role)):
+  CURRENT_USER_ID, role = user_data
+  if role != "admin" and role != 1:
+    raise HTTPException(status_code=403, detail="Not authorized")
+  return await transactions_service.get_deletion_requests()
 
 
 @router.get("/", response_model=List[TransactionRead])
@@ -113,44 +140,17 @@ async def delete_transaction(transaction_id: int, user_data: Tuple[int, str] = D
   return {"status": "deleted"}
 
 
-@router.post("/request-deletion", response_model=TransactionDeletionRequestRead)
-async def request_transaction_deletion(
-  payload: TransactionDeletionRequestCreate,
-  user_data: Tuple[int, str] = Depends(get_user_id_and_role)
-):
-  CURRENT_USER_ID, role = user_data
-  if role == "admin" or role == 1:
-    raise HTTPException(status_code=403, detail="Admins cannot request deletion")
-
-  row = await transactions_service.create_transaction_deletion_request(
-    payload.transaction_id,
-    CURRENT_USER_ID
-  )
-
-  if not row:
-    raise HTTPException(status_code=400, detail="Pending deletion request already exists")
-  return row
-
-
-@router.get("/deletion-requests", response_model=List[TransactionDeletionRequestRead])
-async def list_deletion_requests(user_data: Tuple[int, str] = Depends(get_user_id_and_role)):
-  CURRENT_USER_ID, role = user_data
-  if role != "admin" and role != 1:
-    raise HTTPException(status_code=403, detail="Not authorized")
-  return await transactions_service.get_deletion_requests()
-
-
 @router.patch("/deletion-requests/{request_id}")
 async def review_deletion_request(
-  request_id: int,
-  approve: bool,
-  user_data: Tuple[int, str] = Depends(get_user_id_and_role)
+    request_id: int,
+    payload: ReviewDeletionRequestPayload,
+    user_data: Tuple[int, str] = Depends(get_user_id_and_role)
 ):
-  CURRENT_USER_ID, role = user_data
-  if role != "admin" and role != 1:
-    raise HTTPException(status_code=403, detail="Not authorized")
+    CURRENT_USER_ID, role = user_data
+    if role != "admin" and role != 1:
+        raise HTTPException(status_code=403, detail="Not authorized")
 
-  row = await transactions_service.review_deletion_request(request_id, CURRENT_USER_ID, approve)
-  if not row:
-    raise HTTPException(status_code=404, detail="Request not found or already reviewed")
-  return row
+    row = await transactions_service.review_deletion_request(request_id, CURRENT_USER_ID, payload.approve)
+    if not row:
+        raise HTTPException(status_code=404, detail="Request not found or already reviewed")
+    return row

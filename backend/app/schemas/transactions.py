@@ -57,6 +57,17 @@ class TransactionHistoryRead(BaseModel):
 class TransactionDeletionRequestCreate(BaseModel):
   transaction_id: int
 
+class ReviewDeletionRequestPayload(BaseModel):
+  approve: bool
+
+class TransactionInfoRead(BaseModel):
+  id: int
+  amount: Decimal
+  category_id: int
+  category_name: str
+  description: Optional[str] = None
+  transaction_type: str
+  transaction_date: date
 
 class TransactionDeletionRequestRead(BaseModel):
   id: int
@@ -66,6 +77,7 @@ class TransactionDeletionRequestRead(BaseModel):
   requested_at: datetime
   reviewed_by: Optional[int] = None
   reviewed_at: Optional[datetime] = None
+  transaction: Optional[TransactionInfoRead] = None
 
   model_config = ConfigDict(from_attributes=True)
 
