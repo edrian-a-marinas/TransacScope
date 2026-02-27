@@ -79,15 +79,15 @@ export default function DashboardPage() {
         {selectedMenu === "dashboard" && (
           <>
             <h1>Dashboard Overview</h1>
-            <p>Welcome, {userRole === 1 ? "Admin" : "Standard"}!</p>
+            <p>Welcome, {(userRole === 1 && userID === 1) ? "Super Admin": (userRole === 1 && userID !== 1) ? "Admin": "Standard"}!</p>
           </>
         )}
         {selectedMenu === "transactions" && <Transactions /> }
         {selectedMenu === "reports" && <Reports />}
 
-        {selectedMenu === "manageCategories" && userID === 1 && <ManageCategories onClose={() => setSelectedMenu("dashboard")} />}
+        {selectedMenu === "manageCategories" && userRole === 1 && <ManageCategories onClose={() => setSelectedMenu("dashboard")} />}
 
-        {selectedMenu === "manageUsers" && userID === 1 && <ManageUsers />}
+        {selectedMenu === "manageUsers" && userRole === 1 && <ManageUsers />}
       </main>
     </div>
   )

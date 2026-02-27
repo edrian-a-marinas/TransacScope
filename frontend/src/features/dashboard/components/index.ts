@@ -8,6 +8,6 @@ export { default as HistoryTransaction } from "./HistoryTransactionModal";
 export { default as GenerateReport } from "./GenerateReportModal"
 
 export { default as ReadUsers } from "./ReadUserModal";
-export { default as PromoteUser } from "./ReadTransactionModal";
+export { default as PromoteUser } from "./PromoteUserModal"
 export { default as UserDetails } from "./UpdateTransactionModal";
 export { default as HandleDeletionRequest } from "./DeleteTransactionModal";
