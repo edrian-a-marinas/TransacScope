@@ -6,9 +6,13 @@ import type { Transaction, Category } from "../schemas/transaction";
 import type { OnCloseProps } from "../../../../utility";
 import { formatCurrency, fetchTransactionAndCategories } from "../../../../utility";
 
+import { useOutsideClickStrict } from "../../../../utilityHooks";
+
 export default function UpdateTransaction({ onClose }: OnCloseProps) {
   const { user } = useContext(AuthContext);
   const userId = user!.id;
+
+  const { handleMouseDown, handleMouseUp } = useOutsideClickStrict(onClose);
 
   const token = localStorage.getItem("access_token");
   const tokenType = localStorage.getItem("token_type");
@@ -141,7 +145,8 @@ export default function UpdateTransaction({ onClose }: OnCloseProps) {
     <>
       {!showConfirmation && (
         <div
-          onClick={onClose}
+          onMouseDown={handleMouseDown}
+          onMouseUp={handleMouseUp}
           style={{
             position: "fixed",
             top: 0,

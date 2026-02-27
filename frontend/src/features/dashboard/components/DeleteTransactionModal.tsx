@@ -5,6 +5,7 @@ import { AuthContext } from "../../auth/AuthContext";
 import type { Transaction, Category } from "../schemas/transaction";
 import type { OnCloseProps } from "../../../../utility"
 import { formatCurrency, fetchTransactionAndCategories } from "../../../../utility";
+import { useOutsideClickStrict } from "../../../../utilityHooks";
 
 export default function DeleteTransaction({ onClose }: OnCloseProps) {
   const { user } = useContext(AuthContext);
@@ -15,6 +16,9 @@ export default function DeleteTransaction({ onClose }: OnCloseProps) {
     return 
     // dont remove this, this is for future notification and request for delition if not admin
   }
+
+  const { handleMouseDown, handleMouseUp } = useOutsideClickStrict(onClose);
+
   const token = localStorage.getItem("access_token");
   const tokenType = localStorage.getItem("token_type");
 
@@ -107,7 +111,8 @@ export default function DeleteTransaction({ onClose }: OnCloseProps) {
     <>
       {!showConfirmation && (
         <div
-          onClick={onClose}
+          onMouseDown={handleMouseDown}
+          onMouseUp={handleMouseUp}
           style={{
             position: "fixed",
             top: 0,

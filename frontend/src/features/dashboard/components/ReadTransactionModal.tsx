@@ -5,18 +5,22 @@ import { AuthContext } from "../../auth/AuthContext";
 import { formatDate, formatCurrency } from "../../../../utility"
 import type { OnCloseProps } from "../../../../utility"
 import type { Category, ReadTransaction } from "../schemas/transaction";
+import { useOutsideClickStrict } from "../../../../utilityHooks";
 
 export default function ReadTransactions({ onClose }: OnCloseProps) {
   const { user } = useContext(AuthContext);
   const userRole = user!.role_id;
+
+  const { handleMouseDown, handleMouseUp } = useOutsideClickStrict(onClose);
+
+  const token = localStorage.getItem("access_token");
+  const tokenType = localStorage.getItem("token_type");
 
   const [transactions, setTransactions] = useState<ReadTransaction[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<"all" | "own">("all"); // New state for view mode
 
-  const token = localStorage.getItem("access_token");
-  const tokenType = localStorage.getItem("token_type");
 
   useEffect(() => {
     const fetchData = async () => {
@@ -63,7 +67,8 @@ export default function ReadTransactions({ onClose }: OnCloseProps) {
 
   return (
     <div
-      onClick={onClose}
+      onMouseDown={handleMouseDown}
+      onMouseUp={handleMouseUp}
       style={{
         position: "fixed",
         top: 0,
