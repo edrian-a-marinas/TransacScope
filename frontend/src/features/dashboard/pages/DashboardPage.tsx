@@ -3,6 +3,7 @@ import { useState, useContext } from "react"
 import { AuthContext } from "../../auth/AuthContext"
 import Transactions from "./TransactionPage"
 import Reports from "./ReportPage"
+import ManageUsers from "./ManageUserPage"
 import ManageCategories from "../components/ManageCategoriesModal"
 
 export default function DashboardPage() {
@@ -14,7 +15,7 @@ export default function DashboardPage() {
   const userRole = user!.role_id
 
   const [selectedMenu, setSelectedMenu] = useState<
-    "dashboard" | "transactions" | "reports" | "users" | "manageCategories"
+    "dashboard" | "transactions" | "reports" | "users" | "manageCategories" | "manageUsers"
   >("dashboard"
   )
 
@@ -63,7 +64,7 @@ export default function DashboardPage() {
 
               <li>
                 <button onClick={() => handleMenuClick("manageCategories")}>Manage Categories</button>
-                <button onClick={() => handleMenuClick("users")}>Manage Users</button>
+                <button onClick={() => handleMenuClick("manageUsers")}>Manage Users</button>
 
               </li>
             )}
@@ -85,7 +86,8 @@ export default function DashboardPage() {
         {selectedMenu === "reports" && <Reports />}
 
         {selectedMenu === "manageCategories" && userID === 1 && <ManageCategories onClose={() => setSelectedMenu("dashboard")} />}
-        {selectedMenu === "users" && userID === 1 && <p>Users management placeholder</p>}
+
+        {selectedMenu === "manageUsers" && userID === 1 && <ManageUsers />}
       </main>
     </div>
   )

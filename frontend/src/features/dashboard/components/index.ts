@@ -5,5 +5,11 @@ export { default as DeleteTransaction } from "./DeleteTransactionModal";
 
 export { default as HistoryTransaction } from "./HistoryTransactionModal";
 
-
 export { default as GenerateReport } from "./GenerateReportModal"
+
+export { default as ReadUsers } from "./CreateTransactionModal";
+export { default as PromoteUser } from "./ReadTransactionModal";
+export { default as DeleteUser } from "./UpdateTransactionModal";
+export { default as RestoreUser } from "./DeleteTransactionModal";
+export { default as UserDetails } from "./UpdateTransactionModal";
+export { default as HandleDeletionRequest } from "./DeleteTransactionModal";
