@@ -4,8 +4,6 @@ import { AuthContext } from "../../auth/AuthContext";
 import {
   ReadUsers,
   PromoteUser,
-  DeleteUser,
-  RestoreUser,
   UserDetails,
   HandleDeletionRequest
 } from "../components";
@@ -18,8 +16,6 @@ export default function ManageUsersPage() {
 
   const [showReadModal, setShowReadModal] = useState(false);
   const [showPromoteModal, setShowPromoteModal] = useState(false);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [showRestoreModal, setShowRestoreModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [showHandleRequestModal, setShowHandleRequestModal] = useState(false);
 
@@ -36,23 +32,11 @@ export default function ManageUsersPage() {
         </li>
 
         {/* Super Admin Only */}
-        {userID === 1 && (
+        {(userID === 1 && userRole === 1) && (
           <>
             <li>
               <button onClick={() => setShowPromoteModal(true)}>
                 Promote / Demote User
-              </button>
-            </li>
-
-            <li>
-              <button onClick={() => setShowDeleteModal(true)}>
-                Soft Delete User
-              </button>
-            </li>
-
-            <li>
-              <button onClick={() => setShowRestoreModal(true)}>
-                Restore User
               </button>
             </li>
           </>
@@ -62,41 +46,23 @@ export default function ManageUsersPage() {
         {(userRole === 1 || userRole === 2) && (
           <li>
             <button onClick={() => setShowHandleRequestModal(true)}>
-              Handle Deletion Requests
+              Handle Transaction Deletion Requests
             </button>
           </li>
         )}
 
         <li>
           <button onClick={() => setShowDetailsModal(true)}>
-            View User Details
-          </button>
+            View User Details  {/* Admin + Super Admin  Put the FOR SUPER ADMIN only soft and restore account here. */}
+          </button> 
         </li>
       </ul>
 
-      {showReadModal && (
-        <ReadUsers onClose={() => setShowReadModal(false)} />
-      )}
+      {showReadModal && (<ReadUsers onClose={() => setShowReadModal(false)} />)}
+      {showPromoteModal && (<PromoteUser onClose={() => setShowPromoteModal(false)} />)}
+      {showDetailsModal && (<UserDetails onClose={() => setShowDetailsModal(false)} />)}
+      {showHandleRequestModal && (<HandleDeletionRequest onClose={() => setShowHandleRequestModal(false)} />)}
 
-      {showPromoteModal && (
-        <PromoteUser onClose={() => setShowPromoteModal(false)} />
-      )}
-
-      {showDeleteModal && (
-        <DeleteUser onClose={() => setShowDeleteModal(false)} />
-      )}
-
-      {showRestoreModal && (
-        <RestoreUser onClose={() => setShowRestoreModal(false)} />
-      )}
-
-      {showDetailsModal && (
-        <UserDetails onClose={() => setShowDetailsModal(false)} />
-      )}
-
-      {showHandleRequestModal && (
-        <HandleDeletionRequest onClose={() => setShowHandleRequestModal(false)} />
-      )}
     </div>
   );
 }
