@@ -12,6 +12,7 @@ import api from "@/services/apiClient";
 import { AuthContext } from "@/features/auth/AuthContext";
 import type { ReadTransaction } from "@/features/dashboard/schemas/transaction";
 import type { CategoryRead } from "@/features/dashboard/schemas/category";
+import ReadTransactions from "../modals/ReadTransactionModal";
 
 // Lazy-load heavy Recharts components — won't block first paint
 const IncomeExpenseChart     = lazy(() => import("../charts/IncomeExpenseChart"));
@@ -68,6 +69,7 @@ export default function DashboardOverview({ userRole, userId }: DashboardOvervie
   const [chartsReady, setChartsReady]       = useState(false);
   const [period, setPeriod]                 = useState<Period>("feb2026");
   const [hoveredPeriod, setHoveredPeriod]   = useState<Period | null>(null);
+  const [openTransactionsModal, setOpenTransactionsModal] = useState(false); // moved inside component
 
   const isAdmin   = userRole === 1;
   const token     = localStorage.getItem("access_token");
@@ -192,6 +194,10 @@ export default function DashboardOverview({ userRole, userId }: DashboardOvervie
 
       <div className="space-y-6">
 
+    {openTransactionsModal && (
+      <ReadTransactions onClose={() => setOpenTransactionsModal(false)} />
+    )}
+
         {/* Header */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -285,7 +291,7 @@ export default function DashboardOverview({ userRole, userId }: DashboardOvervie
               <Suspense fallback={<ChartSkeleton height={320} />}>
                 <CategoryBreakdownChart title="Income Breakdown"  subtitle="By category" data={incomeBreakdown}  />
               </Suspense>
-              <RecentTransactions transactions={filteredTransactions} getCategoryName={getCategoryName} />
+              <RecentTransactions transactions={filteredTransactions} getCategoryName={getCategoryName} openViewTransactions={() => setOpenTransactionsModal(true)}/>
             </div>
           </>
         ) : (
@@ -301,6 +307,9 @@ export default function DashboardOverview({ userRole, userId }: DashboardOvervie
             </div>
           </>
         )}
+            {openTransactionsModal && (
+      <ReadTransactions onClose={() => setOpenTransactionsModal(false)} />
+    )}
       </div>
     </>
   );
