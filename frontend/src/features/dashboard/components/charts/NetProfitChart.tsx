@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/features/dashboard/components/ui/card";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts";
 
-
+// Derived type — computed in DashboardOverview from daily transaction grouping
 type DailyTrend = {
   date: string;
   income: number;
@@ -47,13 +47,29 @@ export default function NetProfitChart({ data }: NetProfitChartProps) {
               <XAxis dataKey="date" tick={{ fontSize: 11, fill: "hsl(220, 10%, 46%)" }} tickLine={false} axisLine={false} />
               <YAxis tickFormatter={formatCurrency} tick={{ fontSize: 11, fill: "hsl(220, 10%, 46%)" }} tickLine={false} axisLine={false} width={55} />
               <Tooltip
-                formatter={(value: number) => [`₱${value.toLocaleString()}`, "Net Profit"]}
-                contentStyle={{
-                  background: "hsl(0, 0%, 100%)",
-                  border: "1px solid hsl(220, 13%, 89%)",
-                  borderRadius: "8px",
-                  fontSize: 12,
-                  boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+                content={({ active, payload }) => {
+                  if (!active || !payload?.length) return null;
+                  const val = payload[0].value as number;
+                  const isPositive = val >= 0;
+                  const color = isPositive ? "hsl(160,60%,38%)" : "hsl(0,72%,51%)";
+                  const sign  = isPositive ? "+" : "-";
+                  return (
+                    <div style={{
+                      background:   "hsl(0,0%,100%)",
+                      border:       "1px solid hsl(220,13%,89%)",
+                      borderRadius: "8px",
+                      padding:      "8px 12px",
+                      fontSize:     12,
+                      boxShadow:    "0 4px 12px rgba(0,0,0,0.08)",
+                    }}>
+                      <p style={{ margin: "0 0 4px", color: "hsl(220,10%,46%)", fontSize: 11 }}>
+                        {payload[0].payload.date}
+                      </p>
+                      <p style={{ margin: 0, fontWeight: 600, color }}>
+                        Net Profit: {sign}₱{Math.abs(val).toLocaleString()}
+                      </p>
+                    </div>
+                  );
                 }}
               />
               <ReferenceLine y={0} stroke="hsl(220, 10%, 46%)" strokeDasharray="4 4" strokeOpacity={0.5} />
