@@ -81,7 +81,7 @@ export default function HandleDeletionRequestModal({ onClose }: OnCloseProps) {
     try {
       await api.patch(
         `/api/transactions/deletion-requests/${selectedRequest.id}`,
-        { approve: true }, // <-- BODY
+        { approve: true },
         {
           headers: {
             Authorization: `${tokenType} ${token}`,
@@ -89,21 +89,12 @@ export default function HandleDeletionRequestModal({ onClose }: OnCloseProps) {
         }
       );
 
-      setRequests((prev) =>
-        prev.map((r) =>
-          r.id === selectedRequest.id
-            ? {
-                ...r,
-                status: "approved",
-                reviewed_at: new Date().toISOString(),
-              }
-            : r
-        )
-      );
-
       setShowConfirmModal(false);
       setSelectedRequest(null);
       setTransactionInfo(null);
+
+      alert("Deleted a transaction.");
+      onClose();
     } catch {
       setError("Failed to delete transaction.");
     }
@@ -122,17 +113,8 @@ export default function HandleDeletionRequestModal({ onClose }: OnCloseProps) {
         }
       );
 
-      setRequests((prev) =>
-        prev.map((r) =>
-          r.id === req.id
-            ? {
-                ...r,
-                status: "rejected",
-                reviewed_at: new Date().toISOString(),
-              }
-            : r
-        )
-      );
+      alert("Rejected to delete a transaction.");
+      onClose();
     } catch {
       setError("Failed to reject request.");
     }
