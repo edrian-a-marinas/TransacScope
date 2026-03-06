@@ -151,7 +151,11 @@ function TypeBadge({ type }: { type: string }) {
 }
 
 // ── Main ──────────────────────────────────────────────────────────────────────
-export default function HandleDeletionRequestModal({ onClose }: OnCloseProps) {
+interface HandleDeletionRequestProps extends OnCloseProps {
+  initialRequestId?: number;
+}
+
+export default function HandleDeletionRequestModal({ onClose, initialRequestId }: HandleDeletionRequestProps) {
   const { handleMouseDown, handleMouseUp } = useOutsideClickStrict(onClose);
   const token     = localStorage.getItem("access_token");
   const tokenType = localStorage.getItem("token_type");
@@ -169,6 +173,13 @@ export default function HandleDeletionRequestModal({ onClose }: OnCloseProps) {
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => { fetchRequests(); }, []);
+
+  // Deep-link from notification: once requests load, jump straight to detail step
+  useEffect(() => {
+    if (!initialRequestId || requests.length === 0) return;
+    const req = requests.find(r => r.id === initialRequestId);
+    if (req) handleRowClick(req);
+  }, [initialRequestId, requests]);
 
   // Kick off 5s countdown whenever confirmApprove step starts
   useEffect(() => {
@@ -275,7 +286,7 @@ export default function HandleDeletionRequestModal({ onClose }: OnCloseProps) {
             ? `${selectedRequest.requester.first_name} ${selectedRequest.requester.last_name}`
             : `User #${selectedRequest.requested_by}`}
         />
-        <DetailRow label="Reason" value="—" accent={C.fgMuted} />
+
 
         <SectionLabel>Transaction Details</SectionLabel>
         <DetailRow label="Transaction ID" value={transactionInfo.id} />
