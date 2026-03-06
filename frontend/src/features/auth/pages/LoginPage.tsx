@@ -238,19 +238,9 @@ export default function Login() {
 
           <div className="card-divider" />
 
-          <div className="stats-row">
-            {[
-              { color: S.income,  num: "₱ —", lbl: "Income"  },
-              { color: S.expense, num: "₱ —", lbl: "Expense" },
-              { color: S.primary, num: "₱ —", lbl: "Net"     },
-            ].map(({ color, num, lbl }) => (
-              <div key={lbl} className="stat-badge">
-                <div className="stat-dot" style={{ background: color }} />
-                <span className="stat-num">{num}</span>
-                <span className="stat-lbl">{lbl}</span>
-              </div>
-            ))}
-          </div>
+          <p style={{ textAlign: "center", fontSize: "11.5px", color: S.muted, letterSpacing: "0.03em" }}>
+            Track income, expenses & net profit — all in one place.
+          </p>
 
           <p className="card-footer" style={{ marginTop: "1.25rem" }}>
             Don't have an account? <Link to="/register">Create one</Link>

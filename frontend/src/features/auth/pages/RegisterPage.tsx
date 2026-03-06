@@ -267,7 +267,7 @@ export default function Register() {
                 {[
                   { name: "firstName",   label: "First Name",   placeholder: "Juan",           required: true,  maxLength: 50  },
                   { name: "middleName",  label: "Middle Name",  placeholder: "Santos",          required: false, maxLength: 50  },
-                  { name: "lastName",    label: "Last Name",    placeholder: "dela Cruz",        required: true,  maxLength: 50  },
+                  { name: "lastName",    label: "Last Name",    placeholder: "Dela Cruz",        required: true,  maxLength: 50  },
                   { name: "phoneNumber", label: "Phone",        placeholder: "09XXXXXXXXX",      required: false, maxLength: 11  },
                 ].map(({ name, label, placeholder, required, maxLength }) => (
                   <div key={name} className="field-wrap">
