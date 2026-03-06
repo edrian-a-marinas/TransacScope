@@ -283,12 +283,13 @@ async def review_deletion_request(request_id: int, admin_id: int, approve: bool)
           FROM transaction_deletion_requests
           WHERE id = $1
           """,
-          request_id
+          request_id,
         )
         if not req or req["status"] != "pending":
           return None
 
         status = "approved" if approve else "rejected"
+
         await conn.execute(
           """
           UPDATE transaction_deletion_requests
@@ -297,10 +298,15 @@ async def review_deletion_request(request_id: int, admin_id: int, approve: bool)
           """,
           status,
           admin_id,
-          request_id
+          request_id,
         )
 
-        # If approved, soft-delete the transaction
+        # Fetch transaction snapshot for notification payload
+        tx = await conn.fetchrow(
+          "SELECT amount, transaction_type FROM transactions WHERE id = $1",
+          req["transaction_id"],
+        )
+
         if approve:
           await conn.execute(
             """
@@ -308,10 +314,23 @@ async def review_deletion_request(request_id: int, admin_id: int, approve: bool)
             SET deleted_at = now()
             WHERE id = $1
             """,
-            req["transaction_id"]
+            req["transaction_id"],
           )
 
-        return dict(req, status=status, reviewed_by=admin_id, reviewed_at=str(datetime.now()))
+    # Fire-and-forget — outside transaction block so notif failure
+    # never rolls back the review that already committed.
+    if tx:
+      await notifications_service.notify_requester_deletion_outcome(
+        requested_by=req["requested_by"],
+        request_id=request_id,
+        transaction_id=req["transaction_id"],
+        transaction_type=tx["transaction_type"],
+        amount=float(tx["amount"]),
+        approved=approve,
+      )
+
+    return dict(req, status=status, reviewed_by=admin_id, reviewed_at=str(datetime.now()))
+
   except Exception:
     logger.exception(f"Error reviewing deletion request {request_id}")
     raise

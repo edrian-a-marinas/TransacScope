@@ -139,3 +139,60 @@ async def mark_all_as_read(recipient_user_id: int) -> int:
     except Exception:
         logger.exception(f"Error marking all notifications read for user {recipient_user_id}")
         raise
+
+
+# ── DELETE: remove a single notification ─────────────────────────────────────
+async def delete_notification(notification_id: int, recipient_user_id: int) -> bool:
+    try:
+        pool = await get_pool()
+        async with pool.acquire() as conn:
+            result = await conn.execute(
+                """
+                DELETE FROM notifications
+                WHERE id = $1
+                  AND recipient_user_id = $2
+                """,
+                notification_id,
+                recipient_user_id,
+            )
+            return result == "DELETE 1"
+    except Exception:
+        logger.exception(f"Error deleting notification {notification_id}")
+        raise
+
+
+# ── Internal: notify requester of deletion request outcome ───────────────────
+# Called from transactions_service after admin approves or rejects.
+# Does NOT raise — notification failure must never break the review action.
+async def notify_requester_deletion_outcome(
+  requested_by:     int,
+  request_id:       int,
+  transaction_id:   int,
+  transaction_type: str,
+  amount:           float,
+  approved:         bool,
+) -> None:
+  try:
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+      notif_type = "deletion_approved" if approved else "deletion_rejected"
+      payload = json.dumps({
+        "request_id":       request_id,
+        "transaction_id":   transaction_id,
+        "transaction_type": transaction_type,
+        "amount":           str(amount),
+        "approved":         approved,
+      })
+      await conn.execute(
+        """
+        INSERT INTO notifications (recipient_user_id, type, payload)
+        VALUES ($1, $2::notification_type, $3::jsonb)
+        """,
+        requested_by,
+        notif_type,
+        payload,
+      )
+  except Exception:
+    logger.exception(
+      f"Failed to notify requester {requested_by} of deletion outcome for request {request_id}"
+    )

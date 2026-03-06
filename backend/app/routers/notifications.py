@@ -54,3 +54,17 @@ async def mark_all_as_read(
     CURRENT_USER_ID, _ = user_data
     updated = await notifications_service.mark_all_as_read(CURRENT_USER_ID)
     return {"detail": f"{updated} notification(s) marked as read"}
+
+
+# DELETE /api/notifications/{notification_id}
+# Deletes a single notification (must belong to current user)
+@router.delete("/{notification_id}")
+async def delete_notification(
+    notification_id: int,
+    user_data: Tuple[int, str] = Depends(get_user_id_and_role)
+):
+    CURRENT_USER_ID, _ = user_data
+    success = await notifications_service.delete_notification(notification_id, CURRENT_USER_ID)
+    if not success:
+        raise HTTPException(status_code=404, detail="Notification not found")
+    return {"detail": "Deleted"}
