@@ -11,7 +11,8 @@ from app.schemas.transactions import (
   TransactionHistoryRead, 
   TransactionDeletionRequestCreate,
   TransactionDeletionRequestRead,
-  ReviewDeletionRequestPayload
+  ReviewDeletionRequestPayload,
+  DeletionRequestHistoryRead
 )
 
 router = APIRouter(
@@ -66,6 +67,18 @@ async def get_deletion_requests(user_data: Tuple[int, str] = Depends(get_user_id
   if role != "admin" and role != 1:
     raise HTTPException(status_code=403, detail="Not authorized")
   return await transactions_service.get_deletion_requests()
+
+
+@router.get("/deletion-requests/my-history", response_model=List[DeletionRequestHistoryRead])
+async def get_my_deletion_request_history(
+    user_data: Tuple[int, str] = Depends(get_user_id_and_role)
+):
+    CURRENT_USER_ID, role = user_data
+
+    return await transactions_service.get_deletion_requests_my_history(
+      current_user_id=CURRENT_USER_ID,
+      role=role,
+    )
 
 
 @router.get("/", response_model=List[TransactionRead])

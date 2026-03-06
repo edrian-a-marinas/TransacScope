@@ -191,7 +191,6 @@ async def create_transaction_deletion_request(tx_id: int, requested_by: int):
 
 
 # LIST all pending deletion requests (for admin)
-
 async def get_deletion_requests():
     try:
         pool = await get_pool()
@@ -291,6 +290,118 @@ async def review_deletion_request(request_id: int, admin_id: int, approve: bool)
         return dict(req, status=status, reviewed_by=admin_id, reviewed_at=str(datetime.now()))
   except Exception:
     logger.exception(f"Error reviewing deletion request {request_id}")
+    raise
+
+async def get_deletion_requests_my_history(current_user_id: int, role: str):
+  try:
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+
+      if role == "admin" or role == 1:
+        # Admin: rows where THIS admin was the reviewer
+        rows = await conn.fetch(
+          """
+          SELECT
+            dr.*,
+            -- requester identity
+            req_u.first_name   AS requester_first_name,
+            req_u.last_name    AS requester_last_name,
+            -- reviewer identity (themselves, but included for schema consistency)
+            rev_u.first_name   AS reviewer_first_name,
+            rev_u.last_name    AS reviewer_last_name,
+            -- transaction snapshot
+            t.amount,
+            t.transaction_type,
+            t.category_id,
+            t.description,
+            t.transaction_date,
+            c.name             AS category_name
+          FROM transaction_deletion_requests dr
+          JOIN users req_u ON req_u.id = dr.requested_by
+          LEFT JOIN users rev_u ON rev_u.id = dr.reviewed_by
+          LEFT JOIN transactions t ON t.id = dr.transaction_id
+          LEFT JOIN categories c ON c.id = t.category_id
+          WHERE dr.reviewed_by = $1
+            AND dr.status IN ('approved', 'rejected')
+          ORDER BY dr.reviewed_at DESC
+          """,
+          current_user_id,
+        )
+      else:
+        # Standard user: all their own requests regardless of status
+        rows = await conn.fetch(
+          """
+          SELECT
+            dr.*,
+            -- requester (themselves, included for schema consistency)
+            req_u.first_name   AS requester_first_name,
+            req_u.last_name    AS requester_last_name,
+            -- reviewer identity (admin who acted, may be NULL if pending)
+            rev_u.first_name   AS reviewer_first_name,
+            rev_u.last_name    AS reviewer_last_name,
+            -- transaction snapshot
+            t.amount,
+            t.transaction_type,
+            t.category_id,
+            t.description,
+            t.transaction_date,
+            c.name             AS category_name
+          FROM transaction_deletion_requests dr
+          JOIN users req_u ON req_u.id = dr.requested_by
+          LEFT JOIN users rev_u ON rev_u.id = dr.reviewed_by
+          LEFT JOIN transactions t ON t.id = dr.transaction_id
+          LEFT JOIN categories c ON c.id = t.category_id
+          WHERE dr.requested_by = $1
+          ORDER BY dr.requested_at DESC
+          """,
+          current_user_id,
+        )
+
+      result = []
+      for row in rows:
+        data = dict(row)
+
+        # Nest requester
+        data["requester"] = {
+          "first_name": data.pop("requester_first_name"),
+          "last_name":  data.pop("requester_last_name"),
+        }
+
+        # Nest reviewer (may be None if request is still pending)
+        rev_first = data.pop("reviewer_first_name", None)
+        rev_last  = data.pop("reviewer_last_name",  None)
+        data["reviewer"] = (
+          {"first_name": rev_first, "last_name": rev_last}
+          if rev_first is not None
+          else None
+        )
+
+        # Nest transaction snapshot
+        if data.get("amount") is not None:
+          data["transaction"] = {
+            "id":               data["transaction_id"],
+            "amount":           data.pop("amount"),
+            "transaction_type": data.pop("transaction_type"),
+            "category_id":      data.pop("category_id"),
+            "description":      data.pop("description"),
+            "transaction_date": data.pop("transaction_date"),
+            "category_name":    data.pop("category_name"),
+          }
+        else:
+          # Clean up orphaned columns even when transaction is gone
+          for col in ("amount", "transaction_type", "category_id",
+                      "description", "transaction_date", "category_name"):
+            data.pop(col, None)
+          data["transaction"] = None
+
+        result.append(data)
+
+      return result
+
+  except Exception:
+    logger.exception(
+      f"Error fetching deletion request history for user {current_user_id}"
+    )
     raise
 
 

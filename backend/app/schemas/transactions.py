@@ -82,17 +82,24 @@ class TransactionDeletionRequestRead(BaseModel):
   model_config = ConfigDict(from_attributes=True)
 
 
+class ReviewerInfo(BaseModel):
+  first_name: str
+  last_name: str
+
+class DeletionRequestHistoryRead(BaseModel):
+  id: int
+  transaction_id: int
+  requested_by: int
+  status: str                          # "approved" | "rejected" | "pending"
+  requested_at: datetime
+  reviewed_by: Optional[int] = None
+  reviewed_at: Optional[datetime] = None
+
+  requester: Optional[ReviewerInfo] = None
+
+  reviewer: Optional[ReviewerInfo] = None
 
 
-#decimal used for money, gt=0 must be greater than zero, max digits, decimal places
+  transaction: Optional[TransactionInfoRead] = None
 
-# transactionsRead inherits create and out 
-
-"""
-Model	Used for
-TransactionCreate	POST /transactions
-TransactionUpdate	PATCH /transactions/{id}
-TransactionOut	    POST response
-TransactionRead	    GET /transactions
-
-"""
+  model_config = ConfigDict(from_attributes=True)
