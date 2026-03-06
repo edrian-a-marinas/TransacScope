@@ -179,5 +179,14 @@ export function buildAuthStyles(
     .card-footer { text-align: center; font-size: 13px; color: ${S.muted}; }
     .card-footer a { color: ${S.primary}; text-decoration: none; font-weight: 600; transition: color 0.15s; }
     .card-footer a:hover { color: hsl(199,89%,62%); }
+
+    .watch-demo-wrap {
+      position: absolute;
+      bottom: 1.5rem;
+      left: 50%;
+      transform: translateX(-50%);
+      white-space: nowrap;
+    }
+
   `;
 }

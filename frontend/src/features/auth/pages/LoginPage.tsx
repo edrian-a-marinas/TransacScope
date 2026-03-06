@@ -255,8 +255,13 @@ export default function Login() {
           <p className="card-footer" style={{ marginTop: "1.25rem" }}>
             Don't have an account? <Link to="/register">Create one</Link>
           </p>
+
+          <div className="card-divider" style={{ marginTop: "1.25rem" }} />
+
+          <div className="watch-demo-wrap">
+            <WatchDemoLink />
+          </div>
         </div>
-        <WatchDemoLink />
       </div>
     </>
   );
