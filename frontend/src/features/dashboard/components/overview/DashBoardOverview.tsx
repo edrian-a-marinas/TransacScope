@@ -32,17 +32,12 @@ const CHART_COLORS = [
 const PRIMARY = "hsl(199,89%,38%)";
 const INCOME  = "hsl(160,60%,45%)";
 
-type Period = "all" | "feb2026" | "mar2026";
-
-const PERIODS: { key: Period; label: string }[] = [
-  { key: "feb2026", label: "Feb 2026" },
-  { key: "mar2026", label: "Mar 2026" },
-  { key: "all",     label: "All Time" },
-];
+// "all" is always present; other keys are dynamic "YYYY-MM" strings
+type Period = "all" | string;
 
 interface DashboardOverviewProps {
   userRole: number;
-  userId: number;
+  userId:   number;
 }
 
 // Shimmer skeleton shown while charts lazy-load
@@ -61,15 +56,23 @@ function ChartSkeleton({ height = 300 }: { height?: number }) {
   );
 }
 
+// Format "YYYY-MM" → "Feb 2026"
+function formatPeriodLabel(ym: string): string {
+  const [year, month] = ym.split("-");
+  const date = new Date(Number(year), Number(month) - 1, 1);
+  return date.toLocaleDateString("en-US", { month: "short", year: "numeric" });
+}
+
 export default function DashboardOverview({ userRole, userId }: DashboardOverviewProps) {
   const { user } = useContext(AuthContext);
-  const [transactions, setTransactions]     = useState<ReadTransaction[]>([]);
-  const [categories, setCategories]         = useState<CategoryRead[]>([]);
-  const [loading, setLoading]               = useState(true);
-  const [chartsReady, setChartsReady]       = useState(false);
-  const [period, setPeriod]                 = useState<Period>("feb2026");
-  const [hoveredPeriod, setHoveredPeriod]   = useState<Period | null>(null);
-  const [openTransactionsModal, setOpenTransactionsModal] = useState(false); // moved inside component
+
+  const [transactions, setTransactions]   = useState<ReadTransaction[]>([]);
+  const [categories,   setCategories]     = useState<CategoryRead[]>([]);
+  const [loading,      setLoading]        = useState(true);
+  const [chartsReady,  setChartsReady]    = useState(false);
+  const [period,       setPeriod]         = useState<Period>("all");
+  const [hoveredPeriod, setHoveredPeriod] = useState<Period | null>(null);
+  const [openTransactionsModal, setOpenTransactionsModal] = useState(false);
 
   const isAdmin   = userRole === 1;
   const token     = localStorage.getItem("access_token");
@@ -99,7 +102,6 @@ export default function DashboardOverview({ userRole, userId }: DashboardOvervie
         console.error("Error fetching dashboard data:", err);
       } finally {
         setLoading(false);
-        // Let KPI cards paint first, then mount charts on next frames
         requestAnimationFrame(() => {
           requestAnimationFrame(() => setChartsReady(true));
         });
@@ -107,6 +109,50 @@ export default function DashboardOverview({ userRole, userId }: DashboardOvervie
     };
     fetchData();
   }, [token, tokenType]);
+
+  // ── Derive dynamic period list from actual transaction dates ──────────────
+  // Scoped to the current user's visible transactions (admin sees all)
+  const availablePeriods = useMemo(() => {
+    const visibleTx = isAdmin
+      ? transactions
+      : transactions.filter(t => t.user_id === userId);
+
+    // Collect unique "YYYY-MM" values
+    const monthSet = new Set<string>();
+    visibleTx.forEach(t => {
+      const ym = t.transaction_date.slice(0, 7); // "YYYY-MM"
+      if (ym) monthSet.add(ym);
+    });
+
+    // Sort descending (newest first), then append "All Time"
+    const sorted = Array.from(monthSet).sort((a, b) => b.localeCompare(a));
+
+    return [
+      ...sorted.map(ym => ({ key: ym, label: formatPeriodLabel(ym) })),
+      { key: "all", label: "All Time" },
+    ];
+  }, [transactions, isAdmin, userId]);
+
+  // When transaction data loads, default to current calendar month if it has data,
+  // otherwise fall back to the most recent month that does.
+  useEffect(() => {
+    if (availablePeriods.length === 0) return;
+
+    const currentYM = new Date().toISOString().slice(0, 7); // "YYYY-MM"
+    const hasCurrentMonth = availablePeriods.some(p => p.key === currentYM);
+
+    if (hasCurrentMonth) {
+      setPeriod(currentYM);
+    } else {
+      // Current month has no transactions — pick the closest past month
+      const pastMonths = availablePeriods.filter(p => p.key !== "all" && p.key <= currentYM);
+      if (pastMonths.length > 0) {
+        setPeriod(pastMonths[0].key); // already sorted descending, so [0] is most recent past
+      } else {
+        setPeriod("all");
+      }
+    }
+  }, [availablePeriods]);
 
   const getCategoryName = (id: number | null) => {
     if (!id) return "Uncategorized";
@@ -117,8 +163,8 @@ export default function DashboardOverview({ userRole, userId }: DashboardOvervie
     if (loading) return [];
     let txs = [...transactions];
     if (!isAdmin) txs = txs.filter((t) => t.user_id === userId);
-    if (period === "feb2026")      txs = txs.filter((t) => t.transaction_date.startsWith("2026-02"));
-    else if (period === "mar2026") txs = txs.filter((t) => t.transaction_date.startsWith("2026-03"));
+    // Filter by selected period — "all" shows everything, otherwise match "YYYY-MM" prefix
+    if (period !== "all") txs = txs.filter(t => t.transaction_date.startsWith(period));
     return txs;
   }, [transactions, isAdmin, userId, period, loading]);
 
@@ -194,10 +240,6 @@ export default function DashboardOverview({ userRole, userId }: DashboardOvervie
 
       <div className="space-y-6">
 
-    {openTransactionsModal && (
-      <ReadTransactions onClose={() => setOpenTransactionsModal(false)} />
-    )}
-
         {/* Header */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -207,9 +249,12 @@ export default function DashboardOverview({ userRole, userId }: DashboardOvervie
             </p>
           </div>
 
-          {/* Period toggle */}
-          <div className="flex gap-1.5 rounded-lg p-1" style={{ backgroundColor: "hsl(220,14%,95%)" }}>
-            {PERIODS.map((p) => {
+          {/* Period toggle — dynamic, built from real transaction dates */}
+          <div
+            className="flex gap-1 rounded-lg p-1 flex-wrap"
+            style={{ backgroundColor: "hsl(220,14%,95%)", maxWidth: "100%" }}
+          >
+            {availablePeriods.map((p) => {
               const isActive  = period === p.key;
               const isHovered = hoveredPeriod === p.key;
               return (
@@ -219,13 +264,14 @@ export default function DashboardOverview({ userRole, userId }: DashboardOvervie
                   onMouseEnter={() => setHoveredPeriod(p.key)}
                   onMouseLeave={() => setHoveredPeriod(null)}
                   style={{
-                    fontSize: "0.75rem",
-                    fontWeight: 500,
-                    padding: "0.25rem 0.75rem",
-                    borderRadius: "0.375rem",
-                    border: "none",
-                    cursor: "pointer",
-                    transition: "background-color 0.15s, color 0.15s",
+                    fontSize:        "0.75rem",
+                    fontWeight:      500,
+                    padding:         "0.25rem 0.75rem",
+                    borderRadius:    "0.375rem",
+                    border:          "none",
+                    cursor:          "pointer",
+                    whiteSpace:      "nowrap",
+                    transition:      "background-color 0.15s, color 0.15s",
                     backgroundColor: isActive  ? PRIMARY
                                    : isHovered ? "hsl(160 60% 45% / 0.15)"
                                    : "transparent",
@@ -241,7 +287,7 @@ export default function DashboardOverview({ userRole, userId }: DashboardOvervie
           </div>
         </div>
 
-        {/* KPI Cards — always render immediately */}
+        {/* KPI Cards */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <KpiCard
             title="Total Income"
@@ -273,7 +319,7 @@ export default function DashboardOverview({ userRole, userId }: DashboardOvervie
           />
         </div>
 
-        {/* Charts — deferred so KPI cards paint first, skeletons shown meanwhile */}
+        {/* Charts */}
         {chartsReady ? (
           <>
             <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
@@ -291,7 +337,11 @@ export default function DashboardOverview({ userRole, userId }: DashboardOvervie
               <Suspense fallback={<ChartSkeleton height={320} />}>
                 <CategoryBreakdownChart title="Income Breakdown"  subtitle="By category" data={incomeBreakdown}  />
               </Suspense>
-              <RecentTransactions transactions={filteredTransactions} getCategoryName={getCategoryName} openViewTransactions={() => setOpenTransactionsModal(true)}/>
+              <RecentTransactions
+                transactions={filteredTransactions}
+                getCategoryName={getCategoryName}
+                openViewTransactions={() => setOpenTransactionsModal(true)}
+              />
             </div>
           </>
         ) : (
@@ -307,9 +357,12 @@ export default function DashboardOverview({ userRole, userId }: DashboardOvervie
             </div>
           </>
         )}
-            {openTransactionsModal && (
-      <ReadTransactions onClose={() => setOpenTransactionsModal(false)} />
-    )}
+
+        {/* Transactions modal — opened from RecentTransactions "View All" button */}
+        {openTransactionsModal && (
+          <ReadTransactions onClose={() => setOpenTransactionsModal(false)} />
+        )}
+
       </div>
     </>
   );
