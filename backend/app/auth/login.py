@@ -1,11 +1,11 @@
 from db.connection import get_pool
-from fastapi import HTTPException, Request
+from fastapi import HTTPException
 from datetime import datetime, timedelta
 
 # ── Rate limit config ─────────────────────────────────────────────────────────
-MAX_ATTEMPTS     = 5    # max failed attempts before lockout
-LOCKOUT_MINUTES  = 15   # lockout window in minutes
-WINDOW_MINUTES   = 15   # rolling window to count attempts in
+MAX_ATTEMPTS     = 5   # max failed attempts before lockout
+LOCKOUT_MINUTES  = 3   # lockout window in minutes
+WINDOW_MINUTES   = 3   # rolling window to count attempts in
 
 
 # ── Log a failed attempt ──────────────────────────────────────────────────────
@@ -21,35 +21,39 @@ async def record_failed_attempt(email: str, ip: str | None, conn):
 
 # ── Count recent failed attempts (by email OR ip) ─────────────────────────────
 async def count_recent_attempts(email: str, ip: str | None, conn) -> int:
-  since = datetime.utcnow() - timedelta(minutes=WINDOW_MINUTES)
-
   if ip:
     count = await conn.fetchval(
       """
       SELECT COUNT(*) FROM login_attempts
       WHERE (email = $1 OR ip_address = $2)
-        AND attempted_at >= $3
+        AND attempted_at >= NOW() - INTERVAL '2 minutes 55 seconds'
       """,
-      email, ip, since
+      email, ip
     )
   else:
     count = await conn.fetchval(
       """
       SELECT COUNT(*) FROM login_attempts
       WHERE email = $1
-        AND attempted_at >= $2
+        AND attempted_at >= NOW() - INTERVAL '2 minutes 55 seconds'
       """,
-      email, since
+      email
     )
-
   return count or 0
 
 
-# ── Clear attempts on successful login ───────────────────────────────────────
+# ── Clear attempts on successful login ────────────────────────────────────────
 async def clear_attempts(email: str, conn):
   await conn.execute(
     "DELETE FROM login_attempts WHERE email = $1",
     email
+  )
+
+
+# ── Purge old rows to keep the table clean ───────────────────────────────────
+async def purge_old_attempts(conn):
+  await conn.execute(
+    "DELETE FROM login_attempts WHERE attempted_at < NOW() - INTERVAL '1 hour'"
   )
 
 
@@ -58,6 +62,9 @@ async def verify_user(email: str, password: str, ip: str | None = None):
   pool = await get_pool()
 
   async with pool.acquire() as conn:
+
+    # 0️⃣ Purge stale rows (older than 1 hour) on every request
+    await purge_old_attempts(conn)
 
     # 1️⃣ Check rate limit BEFORE touching credentials
     recent = await count_recent_attempts(email, ip, conn)
