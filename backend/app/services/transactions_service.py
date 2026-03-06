@@ -440,6 +440,18 @@ async def count_transactions_by_category(category_id: int, current_user_id: int,
     raise
 
 
+async def cancel_deletion_request(request_id: int, user_id: int):
+  pool = await get_pool()
+  async with pool.acquire() as conn:
+    req = await conn.fetchrow(
+      "SELECT * FROM transaction_deletion_requests WHERE id = $1", request_id
+    )
+    if not req or req["requested_by"] != user_id or req["status"] != "pending":
+      return None
+    await conn.execute(
+      "DELETE FROM transaction_deletion_requests WHERE id = $1", request_id
+    )
+    return True
 
 # CREATE
 async def create_transaction(tx, current_user_id: int):

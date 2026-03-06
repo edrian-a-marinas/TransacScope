@@ -153,6 +153,17 @@ async def delete_transaction(transaction_id: int, user_data: Tuple[int, str] = D
   return {"status": "deleted"}
 
 
+@router.delete("/deletion-requests/{request_id}")
+async def cancel_deletion_request(
+    request_id: int,
+    user_data: Tuple[int, str] = Depends(get_user_id_and_role)
+):
+    CURRENT_USER_ID, role = user_data
+    result = await transactions_service.cancel_deletion_request(request_id, CURRENT_USER_ID)
+    if not result:
+        raise HTTPException(status_code=404, detail="Request not found or already reviewed.")
+    return {"detail": "Request cancelled."}
+
 @router.patch("/deletion-requests/{request_id}")
 async def review_deletion_request(
     request_id: int,
