@@ -9,6 +9,7 @@ interface KpiCardProps {
   icon: LucideIcon;
   trend?: { value: number; label: string };
   variant?: "default" | "income" | "expense" | "neutral";
+  onClick?: () => void;
 }
 
 // Hardcoded HSL values from index.css — Tailwind v4 doesn't resolve CSS var-based utilities
@@ -26,11 +27,15 @@ const iconVariantStyles: Record<string, { wrapper: string; color: string }> = {
   neutral: { wrapper: "bg-[hsl(220,10%,46%,0.1)]",  color: "color: hsl(220,10%,46%)" },
 };
 
-export default function KpiCard({ title, value, subtitle, icon: Icon, trend, variant = "default" }: KpiCardProps) {
+export default function KpiCard({ title, value, subtitle, icon: Icon, trend, variant = "default", onClick }: KpiCardProps) {
   const iconStyles = iconVariantStyles[variant];
 
   return (
-    <Card className={cn("transition-shadow hover:shadow-md", variantStyles[variant])}>
+    <Card
+      className={cn("transition-shadow hover:shadow-md", variantStyles[variant], onClick && "cursor-pointer hover:shadow-lg active:scale-[0.99]")}
+      onClick={onClick}
+      style={onClick ? { transition: "box-shadow 0.15s, transform 0.1s" } : undefined}
+    >
       <CardContent className="p-5">
         <div className="flex items-start justify-between">
           <div className="space-y-1">

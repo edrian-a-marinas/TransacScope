@@ -73,6 +73,15 @@ export default function DashboardOverview({ userRole, userId }: DashboardOvervie
   const [period,       setPeriod]         = useState<Period>("all");
   const [hoveredPeriod, setHoveredPeriod] = useState<Period | null>(null);
   const [openTransactionsModal, setOpenTransactionsModal] = useState(false);
+  const [transactionTypeFilter,  setTransactionTypeFilter]  = useState<"all" | "Income" | "Expense">("all");
+  const [transactionMonthFilter, setTransactionMonthFilter] = useState<string>("all");
+
+  const openModal = (filter: "all" | "Income" | "Expense" = "all") => {
+    setTransactionTypeFilter(filter);
+    // Pass the currently selected dashboard period as the month pre-filter
+    setTransactionMonthFilter(period !== "all" ? period : "all");
+    setOpenTransactionsModal(true);
+  };
 
   const isAdmin   = userRole === 1;
   const token     = localStorage.getItem("access_token");
@@ -295,6 +304,7 @@ export default function DashboardOverview({ userRole, userId }: DashboardOvervie
             subtitle={`${summary.incomeCount} transactions`}
             icon={ArrowDownLeft}
             variant="income"
+            onClick={() => openModal("Income")}
           />
           <KpiCard
             title="Total Expenses"
@@ -302,6 +312,7 @@ export default function DashboardOverview({ userRole, userId }: DashboardOvervie
             subtitle={`${summary.expenseCount} transactions`}
             icon={ArrowUpRight}
             variant="expense"
+            onClick={() => openModal("Expense")}
           />
           <KpiCard
             title="Net Profit"
@@ -309,6 +320,7 @@ export default function DashboardOverview({ userRole, userId }: DashboardOvervie
             subtitle={`${profitMargin.toFixed(1)}% margin`}
             icon={summary.netProfit >= 0 ? TrendingUp : TrendingDown}
             variant={summary.netProfit >= 0 ? "income" : "expense"}
+            onClick={() => openModal("all")}
           />
           <KpiCard
             title="Transactions"
@@ -316,6 +328,7 @@ export default function DashboardOverview({ userRole, userId }: DashboardOvervie
             subtitle="Active records"
             icon={Activity}
             variant="default"
+            onClick={() => openModal("all")}
           />
         </div>
 
@@ -340,7 +353,7 @@ export default function DashboardOverview({ userRole, userId }: DashboardOvervie
               <RecentTransactions
                 transactions={filteredTransactions}
                 getCategoryName={getCategoryName}
-                openViewTransactions={() => setOpenTransactionsModal(true)}
+                openViewTransactions={() => openModal("all")}
               />
             </div>
           </>
@@ -360,7 +373,11 @@ export default function DashboardOverview({ userRole, userId }: DashboardOvervie
 
         {/* Transactions modal — opened from RecentTransactions "View All" button */}
         {openTransactionsModal && (
-          <ReadTransactions onClose={() => setOpenTransactionsModal(false)} />
+          <ReadTransactions
+            onClose={() => setOpenTransactionsModal(false)}
+            initialTypeFilter={transactionTypeFilter}
+            initialMonthFilter={transactionMonthFilter}
+          />
         )}
 
       </div>

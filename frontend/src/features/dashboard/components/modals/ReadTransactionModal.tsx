@@ -1,4 +1,4 @@
-import { useEffect, useState, useContext } from "react";
+import { useEffect, useState, useContext, useMemo } from "react";
 import { X, ArrowUpDown, ArrowUp, ArrowDown, ChevronDown } from "lucide-react";
 
 import api from "@/services/apiClient";
@@ -161,8 +161,83 @@ function Shell({ children, onBackdropDown, onBackdropUp }: ShellProps) {
   );
 }
 
-// ── Main ─────────────────────────────────────────────────────────────────────
-export default function ReadTransactions({ onClose }: OnCloseProps) {
+// ── Month filter dropdown ────────────────────────────────────────────────────
+interface MonthDropdownProps {
+  value:    string; // "all" or "YYYY-MM"
+  options:  { key: string; label: string }[];
+  onChange: (v: string) => void;
+}
+function MonthDropdown({ value, options, onChange }: MonthDropdownProps) {
+  const [open, setOpen] = useState(false);
+  const current = options.find(o => o.key === value) ?? options[0];
+
+  return (
+    <div style={{ position: "relative" }}>
+      <button
+        onClick={() => setOpen(p => !p)}
+        style={{
+          display:      "flex",
+          alignItems:   "center",
+          gap:          "0.3rem",
+          background:   C.surfaceEl,
+          border:       `1px solid ${C.border}`,
+          borderRadius: "0.4rem",
+          color:        value === "all" ? C.fgMuted : C.primary,
+          fontSize:     "0.72rem",
+          fontWeight:   600,
+          padding:      "0.25rem 0.5rem",
+          cursor:       "pointer",
+          whiteSpace:   "nowrap",
+        }}
+      >
+        {current?.label ?? "All Months"}
+        <ChevronDown style={{ width: "0.7rem", height: "0.7rem" }} />
+      </button>
+      {open && (
+        <div style={{
+          position:   "absolute",
+          top:        "calc(100% + 4px)",
+          left:       0,
+          background: C.surfaceEl,
+          border:     `1px solid ${C.border}`,
+          borderRadius:"0.4rem",
+          zIndex:     200,
+          minWidth:   "130px",
+          boxShadow:  "0 8px 24px rgba(0,0,0,0.4)",
+          overflow:   "hidden",
+          maxHeight:  "220px",
+          overflowY:  "auto",
+        }}>
+          {options.map(o => (
+            <button
+              key={o.key}
+              onClick={() => { onChange(o.key); setOpen(false); }}
+              style={{
+                display:    "block",
+                width:      "100%",
+                textAlign:  "left",
+                padding:    "0.4rem 0.75rem",
+                background: o.key === value ? C.surfaceHov : "transparent",
+                border:     "none",
+                color:      o.key === "all" ? C.fg : C.primary,
+                fontSize:   "0.75rem",
+                cursor:     "pointer",
+              }}
+            >
+              {o.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+interface ReadTransactionsProps extends OnCloseProps {
+  initialTypeFilter?:  TypeFilter;
+  initialMonthFilter?: string; // "all" or "YYYY-MM"
+}
+
+export default function ReadTransactions({ onClose, initialTypeFilter = "all", initialMonthFilter = "all" }: ReadTransactionsProps) {
   const { user } = useContext(AuthContext);
   const userRole = user!.role_id;
   const isAdmin  = userRole === 1;
@@ -179,8 +254,9 @@ export default function ReadTransactions({ onClose }: OnCloseProps) {
 
   // Sort & filter state
   const [sortField,  setSortField]  = useState<SortField>("id");
-  const [sortDir,    setSortDir]    = useState<SortDir>("desc");   // newest ID first by default
-  const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
+  const [sortDir,    setSortDir]    = useState<SortDir>("desc");
+  const [typeFilter,  setTypeFilter]  = useState<TypeFilter>(initialTypeFilter);
+  const [monthFilter, setMonthFilter] = useState<string>(initialMonthFilter);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -218,15 +294,34 @@ export default function ReadTransactions({ onClose }: OnCloseProps) {
     }
   };
 
-  // ── Apply view mode + type filter + sort ──────────────────────────────────
+  // ── Derive available months from loaded transactions ──────────────────────
+  const availableMonths = useMemo(() => {
+    let txs = [...transactions];
+    if (viewMode === "own") txs = txs.filter(t => t.user_id === user?.id);
+    const monthSet = new Set<string>();
+    txs.forEach(t => {
+      const ym = t.transaction_date?.slice(0, 7);
+      if (ym) monthSet.add(ym);
+    });
+    const sorted = Array.from(monthSet).sort((a, b) => b.localeCompare(a));
+    return [
+      { key: "all", label: "All Months" },
+      ...sorted.map(ym => {
+        const [year, month] = ym.split("-");
+        const label = new Date(Number(year), Number(month) - 1, 1)
+          .toLocaleDateString("en-US", { month: "short", year: "numeric" });
+        return { key: ym, label };
+      }),
+    ];
+  }, [transactions, viewMode, user]);
+
+  // ── Apply view mode + month filter + type filter + sort ───────────────────
   const processed = (() => {
     let txs = [...transactions];
 
-    // View mode
     if (viewMode === "own") txs = txs.filter(t => t.user_id === user?.id);
-
-    // Type filter
-    if (typeFilter !== "all") txs = txs.filter(t => t.transaction_type === typeFilter);
+    if (monthFilter !== "all") txs = txs.filter(t => t.transaction_date?.startsWith(monthFilter));
+    if (typeFilter  !== "all") txs = txs.filter(t => t.transaction_type === typeFilter);
 
     // Sort
     txs.sort((a, b) => {
@@ -308,7 +403,8 @@ export default function ReadTransactions({ onClose }: OnCloseProps) {
           </h2>
           <p style={{ color: C.fgMuted, fontSize: "0.75rem", margin: "0.2rem 0 0" }}>
             {processed.length} record{processed.length !== 1 ? "s" : ""}
-            {typeFilter !== "all" ? ` · ${typeFilter} only` : ""}
+            {typeFilter  !== "all" ? ` · ${typeFilter} only` : ""}
+            {monthFilter !== "all" ? ` · ${availableMonths.find(m => m.key === monthFilter)?.label ?? monthFilter}` : ""}
           </p>
         </div>
 
@@ -424,7 +520,22 @@ export default function ReadTransactions({ onClose }: OnCloseProps) {
                 }}>
                   Description
                 </th>
-                <Th field="transaction_date">Tx Date</Th>
+                <th style={{
+                  padding:       "0.6rem 0.75rem",
+                  fontSize:      "0.7rem",
+                  fontWeight:    600,
+                  color:         C.fgMuted,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.05em",
+                  borderBottom:  `1px solid ${C.border}`,
+                  background:    C.surfaceEl,
+                }}>
+                  <MonthDropdown
+                    value={monthFilter}
+                    options={availableMonths}
+                    onChange={setMonthFilter}
+                  />
+                </th>
                 <Th field="created_at">Created At</Th>
               </tr>
             </thead>
