@@ -1,5 +1,6 @@
+// ReportPage.tsx
 import { useState, useContext } from "react";
-import { FileText, TrendingUp, TrendingDown, BarChart2 } from "lucide-react";
+import { FileText, TrendingUp, TrendingDown, BarChart2, HelpCircle } from "lucide-react";
 import { AuthContext } from "@/features/auth/AuthContext";
 import { GenerateReport } from "@/features/dashboard/components/modals";
 import type { ReportMode } from "@/features/dashboard/schemas/report";
@@ -52,6 +53,93 @@ const reportCards: ReportCard[] = [
   },
 ];
 
+// ── Tooltip content ───────────────────────────────────────────────────────────
+const TOOLTIP_LINES = [
+  "Select a report type, set a date range,",
+  "and choose daily, weekly, or monthly grouping.",
+  "Results can be downloaded as a PDF.",
+  "",
+  "• Income — revenue by category",
+  "• Expense — spending breakdown",
+  "• Combined — net profit & full summary",
+];
+
+// ── Tooltip component ─────────────────────────────────────────────────────────
+function InfoTooltip() {
+  const [visible, setVisible] = useState(false);
+
+  return (
+    <div style={{ position: "relative", display: "inline-flex", alignItems: "center" }}>
+      <button
+        onMouseEnter={() => setVisible(true)}
+        onMouseLeave={() => setVisible(false)}
+        onFocus={() => setVisible(true)}
+        onBlur={() => setVisible(false)}
+        style={{
+          background:  "transparent",
+          border:      "none",
+          padding:     "0.15rem",
+          cursor:      "default",
+          display:     "flex",
+          alignItems:  "center",
+          color:       C.muted,
+          lineHeight:  1,
+        }}
+        aria-label="Report help"
+        tabIndex={0}
+      >
+        <HelpCircle style={{ width: "0.85rem", height: "0.85rem" }} />
+      </button>
+
+      {visible && (
+        <div style={{
+          position:     "absolute",
+          left:         "calc(100% + 8px)",
+          top:          "50%",
+          transform:    "translateY(-50%)",
+          zIndex:       50,
+          background:   "hsl(220,20%,12%)",
+          border:       "1px solid hsl(220,16%,22%)",
+          borderRadius: "0.55rem",
+          padding:      "0.65rem 0.875rem",
+          minWidth:     "230px",
+          boxShadow:    "0 8px 24px rgba(0,0,0,0.35)",
+          pointerEvents:"none",
+        }}>
+          {/* Arrow pointing left */}
+          <div style={{
+            position:    "absolute",
+            left:        "-5px",
+            top:         "50%",
+            transform:   "translateY(-50%)",
+            width:       0,
+            height:      0,
+            borderTop:   "5px solid transparent",
+            borderBottom:"5px solid transparent",
+            borderRight: "5px solid hsl(220,16%,22%)",
+          }} />
+          {TOOLTIP_LINES.map((line, i) =>
+            line === "" ? (
+              <div key={i} style={{ height: "0.4rem" }} />
+            ) : (
+              <p key={i} style={{
+                fontSize:   "0.72rem",
+                color:      line.startsWith("•") ? "hsl(220,14%,80%)" : "hsl(220,10%,60%)",
+                margin:     0,
+                lineHeight: 1.6,
+                fontWeight: line.startsWith("•") ? 500 : 400,
+              }}>
+                {line}
+              </p>
+            )
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Main ──────────────────────────────────────────────────────────────────────
 export default function ReportsPage() {
   const { user } = useContext(AuthContext);
   const userRole = user!.role_id;
@@ -63,15 +151,16 @@ export default function ReportsPage() {
   return (
     <>
       <title>Reports</title>
-
       <div className="space-y-6">
-        {/* Page header — mirrors TransactionPage */}
+        {/* Page header */}
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-2">
             <FileText className="h-5 w-5" style={{ color: C.primary }} />
             <h1 className="text-2xl font-bold tracking-tight" style={{ color: C.fg }}>
               Reports
             </h1>
+            {/* ── Tooltip — sits right of the title, small and unobtrusive ── */}
+            <InfoTooltip />
           </div>
           <p className="text-sm" style={{ color: C.fgLight }}>
             {isAdmin
@@ -85,7 +174,6 @@ export default function ReportsPage() {
           {reportCards.map((card) => {
             const Icon    = card.icon;
             const hovered = hoveredCard === card.mode;
-
             return (
               <button
                 key={card.mode}
@@ -128,7 +216,6 @@ export default function ReportsPage() {
                     transition: "color 0.15s",
                   }} />
                 </div>
-
                 {/* Text */}
                 <div>
                   <p className="text-sm font-semibold" style={{ color: C.fg, marginBottom: "0.2rem" }}>
