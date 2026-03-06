@@ -1,12 +1,11 @@
 import { S } from "./authConst";
-
 /**
  * Shared CSS injected via <style> in both LoginPage and RegisterPage.
  *
- * rootClass  — the page-level wrapper class  (.login-root | .reg-root)
- * cardClass  — the card element class         (.login-card | .reg-card)
- * maxWidth   — card max-width (px)            (420 | 460)
- * extraPadding — adds `padding: 2rem 0` to root when true (Register only)
+ * rootClass    — the page-level wrapper class  (.login-root | .reg-root)
+ * cardClass    — the card element class         (.login-card | .reg-card)
+ * maxWidth     — card max-width (px)            (420 | 460)
+ * extraPadding — tighter spacing for Register (more fields, less height)
  */
 export function buildAuthStyles(
   rootClass:    string,
@@ -16,9 +15,7 @@ export function buildAuthStyles(
 ): string {
   return `
     @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
-
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
     .${rootClass} {
       font-family: 'DM Sans', sans-serif;
       min-height: 100vh;
@@ -28,9 +25,8 @@ export function buildAuthStyles(
       background: ${S.bgDeep};
       position: relative;
       overflow: hidden;
-      ${extraPadding ? "padding: 2rem 0;" : ""}
+      ${extraPadding ? "padding: 1.25rem 0;" : ""}
     }
-
     .${rootClass}::before {
       content: '';
       position: absolute;
@@ -41,7 +37,6 @@ export function buildAuthStyles(
         radial-gradient(ellipse 40% 40% at 75% 85%, hsl(160 60% 45% / 0.04) 0%, transparent 50%);
       pointer-events: none;
     }
-
     .${rootClass}::after {
       content: '';
       position: absolute;
@@ -53,14 +48,12 @@ export function buildAuthStyles(
       pointer-events: none;
       mask-image: radial-gradient(ellipse 90% 90% at 50% 50%, black 30%, transparent 100%);
     }
-
     @keyframes floatOnce {
       0%   { transform: translateY(0);      opacity: 0; }
       8%   { opacity: 1; }
       88%  { opacity: 1; }
       100% { transform: translateY(-105vh); opacity: 0; }
     }
-
     .particle {
       position: absolute;
       bottom: -2%;
@@ -71,7 +64,6 @@ export function buildAuthStyles(
       letter-spacing: 0.02em;
       animation: floatOnce linear forwards;
     }
-
     .${cardClass} {
       position: relative;
       z-index: 10;
@@ -121,7 +113,6 @@ export function buildAuthStyles(
       border-radius: 10px; padding: 10px 14px; margin-bottom: 1.25rem;
     }
     .error-box p { font-size: 12.5px; color: hsl(0,72%,65%); line-height: 1.5; }
-
     .success-box {
       background: hsl(160 60% 45% / 0.08); border: 1px solid hsl(160 60% 45% / 0.25);
       border-radius: 10px; padding: 10px 14px; margin-bottom: 1.25rem;
@@ -164,9 +155,7 @@ export function buildAuthStyles(
     .submit-btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 6px 20px hsl(199 89% 48% / 0.35), 0 2px 6px hsl(0 0% 0% / 0.2); }
     .submit-btn:active:not(:disabled) { transform: translateY(0); }
     .submit-btn:disabled { opacity: 0.45; cursor: not-allowed; }
-
     .btn-inner { display: flex; align-items: center; justify-content: center; gap: 8px; }
-
     .spinner {
       width: 14px; height: 14px;
       border: 2px solid hsl(220 28% 7% / 0.3); border-top-color: hsl(220 28% 7%);
@@ -180,6 +169,7 @@ export function buildAuthStyles(
     .card-footer a { color: ${S.primary}; text-decoration: none; font-weight: 600; transition: color 0.15s; }
     .card-footer a:hover { color: hsl(199,89%,62%); }
 
+    /* ── Watch demo link (login page) ── */
     .watch-demo-wrap {
       position: absolute;
       bottom: 1.5rem;
@@ -188,5 +178,17 @@ export function buildAuthStyles(
       white-space: nowrap;
     }
 
+    ${extraPadding ? `
+    /* ── Register compact overrides — tighter spacing to fit 1080p at 100% ── */
+    .${cardClass} {
+      padding: 1.75rem 2.5rem;
+      margin: 1rem 1.5rem;
+    }
+    .logo-row        { margin-bottom: 1rem; }
+    .card-title      { font-size: 22px; }
+    .card-subtitle   { margin-bottom: 1.25rem; }
+    .accent-line     { margin-bottom: 1.25rem; }
+    .card-divider    { margin: 1rem 0; }
+    ` : ""}
   `;
 }

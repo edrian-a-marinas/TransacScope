@@ -224,7 +224,7 @@ export default function Register() {
 
           {/* Logo */}
           <div className="logo-row" style={{ justifyContent: "flex-start" }}>
-            <img src="/transacScope1.svg" alt="TransacScope" style={{ height: "100px", width: "auto" }} />
+            <img src="/transacScope1.svg" alt="TransacScope" style={{ height: "72px", width: "auto" }} />
           </div>
 
           {/* Step indicator */}

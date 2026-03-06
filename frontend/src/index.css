@@ -253,6 +253,43 @@
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
+   SCROLLBAR
+───────────────────────────────────────────────────────────────────────────── */
+
+/* Hide scrollbar on auth pages (login/register) */
+.login-root,
+.reg-root {
+  scrollbar-width: none;        /* Firefox */
+  -ms-overflow-style: none;     /* IE/Edge */
+}
+.login-root::-webkit-scrollbar,
+.reg-root::-webkit-scrollbar {
+  display: none;                /* Chrome/Safari */
+}
+
+/* Global styled scrollbar — everywhere else */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: hsl(220, 20%, 22%);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(199, 89%, 38%);   /* your --primary on hover */
+}
+
+/* Firefox global */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(220, 20%, 22%) transparent;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
    KEYFRAMES
 ───────────────────────────────────────────────────────────────────────────── */
 @keyframes ts-shimmer {
