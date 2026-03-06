@@ -66,6 +66,13 @@ function formatPeriodLabel(ym: string): string {
 export default function DashboardOverview({ userRole, userId }: DashboardOverviewProps) {
   const { user } = useContext(AuthContext);
 
+  const userID   = user.id;
+
+  const roleLabel =
+    userRole === 1 && userID === 1 ? "Super Admin"
+    : userRole === 1               ? "Admin"
+    :                                "Standard User";
+
   const [transactions, setTransactions]   = useState<ReadTransaction[]>([]);
   const [categories,   setCategories]     = useState<CategoryRead[]>([]);
   const [loading,      setLoading]        = useState(true);
@@ -252,7 +259,7 @@ export default function DashboardOverview({ userRole, userId }: DashboardOvervie
         {/* Header */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-foreground">Dashboard Overview</h1>
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">Dashboard Overview -  {roleLabel}</h1>
             <p className="text-sm text-muted-foreground">
               {isAdmin ? "All transactions across the business" : "Your personal transaction summary"}
             </p>
