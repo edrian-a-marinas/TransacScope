@@ -1,16 +1,17 @@
 // DashboardPage.tsx
-import { useState, useContext } from "react";
+import { useState, useContext, useEffect } from "react";
 import { cn } from "@/features/dashboard/lib/utils";
 import {
   LayoutDashboard, ArrowLeftRight, FileText,
-  FolderOpen, Users, LogOut, ChevronLeft, ChevronRight,
+  FolderOpen, Users, LogOut, ChevronLeft, ChevronRight, Settings,
 } from "lucide-react";
 import { AuthContext } from "../../auth/AuthContext";
-import Transactions   from "./TransactionPage";
-import Reports        from "./ReportPage";
-import ManageUsers    from "./ManageUserPage";
-import ManageCategories   from "../components/modals/ManageCategoriesModal";
-import DashboardOverview  from "@/features/dashboard/components/overview/DashBoardOverview";
+import Transactions      from "./TransactionPage";
+import Reports           from "./ReportPage";
+import ManageUsers       from "./ManageUserPage";
+import SettingsPage      from "./SettingsPage";
+import ManageCategories      from "../components/modals/ManageCategoriesModal";
+import DashboardOverview     from "@/features/dashboard/components/overview/DashBoardOverview";
 import HandleDeletionRequest from "../components/modals/HandleDeletionRequestModal";
 import NotificationPanel     from "../components/ui/NotificationPanel";
 
@@ -24,15 +25,18 @@ const S = {
   border:     "hsl(220,20%,18%)",
   foreground: "hsl(220,14%,85%)",
   expense:    "hsl(0,72%,51%)",
+  warning:    "hsl(45,85%,50%)",
 };
 
-type MenuKey = "dashboard" | "transactions" | "reports" | "manageCategories" | "manageUsers";
+type MenuKey = "dashboard" | "transactions" | "reports" | "manageCategories" | "manageUsers" | "settings";
 
 interface NavItem {
   key:        MenuKey;
   label:      string;
   icon:       typeof LayoutDashboard;
   adminOnly?: boolean;
+  // If true this item renders in the footer area (above logout), not main nav
+  footer?:    boolean;
 }
 
 const navItems: NavItem[] = [
@@ -45,21 +49,22 @@ const navItems: NavItem[] = [
 
 export default function DashboardPage() {
   const { logout, user } = useContext(AuthContext);
-
   const [selectedMenu,  setSelectedMenu]  = useState<MenuKey>("dashboard");
   const [collapsed,     setCollapsed]     = useState(false);
   const [hoveredMenu,   setHoveredMenu]   = useState<MenuKey | null>(null);
   const [hoveredLogout, setHoveredLogout] = useState(false);
+  const [hoveredSettings, setHoveredSettings] = useState(false);
 
   // Deep-link: notification → deletion modal at a specific request
-  const [deepLinkRequestId,      setDeepLinkRequestId]      = useState<number | undefined>();
-  const [showDeletionModalDirect, setShowDeletionModalDirect] = useState(false);
+  const [deepLinkRequestId,       setDeepLinkRequestId]       = useState<number | undefined>();
+  const [showDeletionModalDirect,  setShowDeletionModalDirect] = useState(false);
 
   if (!user) return <p>Loading...</p>;
 
   const userID   = user.id;
   const userRole = user.role_id;
   const isAdmin  = userRole === 1;
+  const isDeactivated = !user.is_active;
 
   const roleLabel =
     userRole === 1 && userID === 1 ? "Super Admin"
@@ -72,9 +77,55 @@ export default function DashboardPage() {
     ? { Authorization: `${tokenType} ${token}` }
     : {};
 
+  // ── Deactivated gate: force user to Settings only ─────────────────────────
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  useEffect(() => {
+    if (isDeactivated && selectedMenu !== "settings") {
+      setSelectedMenu("settings");
+    }
+  }, [isDeactivated, selectedMenu]);
+
   const handleDeepLink = (requestId: number) => {
     setDeepLinkRequestId(requestId);
     setShowDeletionModalDirect(true);
+  };
+
+  // ── Nav button factory ────────────────────────────────────────────────────
+  const NavButton = ({ item }: { item: NavItem }) => {
+    const active  = selectedMenu === item.key;
+    const hovered = hoveredMenu  === item.key;
+    const locked  = isDeactivated; // deactivated users can't navigate away
+
+    return (
+      <button
+        key={item.key}
+        onClick={() => !locked && setSelectedMenu(item.key)}
+        onMouseEnter={() => setHoveredMenu(item.key)}
+        onMouseLeave={() => setHoveredMenu(null)}
+        className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors"
+        style={{
+          backgroundColor: active || hovered ? S.accent : "transparent",
+          color:   locked  ? S.muted
+                 : active  ? S.primary
+                 : hovered ? S.accentFg
+                 :           S.muted,
+          border:   "none",
+          cursor:   locked ? "not-allowed" : "pointer",
+          opacity:  locked ? 0.45 : 1,
+        }}
+      >
+        <item.icon
+          className="h-4 w-4 shrink-0"
+          style={{
+            color: locked  ? S.muted
+                 : active  ? S.primary
+                 : hovered ? S.accentFg
+                 :           S.muted,
+          }}
+        />
+        {!collapsed && <span>{item.label}</span>}
+      </button>
+    );
   };
 
   return (
@@ -95,7 +146,7 @@ export default function DashboardPage() {
             src="../../../../../src/assets/vite.svg"
             alt="TransacScope"
             className="h-8 w-8 shrink-0 cursor-pointer"
-            onClick={() => setSelectedMenu("dashboard")}
+            onClick={() => !isDeactivated && setSelectedMenu("dashboard")}
           />
           {!collapsed && (
             <span className="text-sm font-bold tracking-tight" style={{ color: S.foreground }}>
@@ -108,40 +159,40 @@ export default function DashboardPage() {
         <nav className="flex-1 space-y-1 px-2 py-4">
           {navItems
             .filter(item => !item.adminOnly || isAdmin)
-            .map(item => {
-              const active  = selectedMenu === item.key;
-              const hovered = hoveredMenu === item.key;
-              return (
-                <button
-                  key={item.key}
-                  onClick={() => setSelectedMenu(item.key)}
-                  onMouseEnter={() => setHoveredMenu(item.key)}
-                  onMouseLeave={() => setHoveredMenu(null)}
-                  className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors"
-                  style={{
-                    backgroundColor: active || hovered ? S.accent : "transparent",
-                    color:  active ? S.primary : hovered ? S.accentFg : S.muted,
-                    border: "none", cursor: "pointer",
-                  }}
-                >
-                  <item.icon
-                    className="h-4 w-4 shrink-0"
-                    style={{ color: active ? S.primary : hovered ? S.accentFg : S.muted }}
-                  />
-                  {!collapsed && <span>{item.label}</span>}
-                </button>
-              );
-            })}
+            .map(item => <NavButton key={item.key} item={item} />)}
         </nav>
 
         {/* Footer */}
         <div className="p-3" style={{ borderTop: `1px solid ${S.border}` }}>
+          {/* User chip */}
           {!collapsed && (
             <div className="mb-3 rounded-lg px-3 py-2" style={{ backgroundColor: S.accent }}>
               <p className="text-xs font-semibold" style={{ color: S.accentFg }}>{user.first_name}</p>
               <p className="text-[10px]" style={{ color: S.muted }}>{roleLabel}</p>
             </div>
           )}
+
+          {/* Settings button */}
+          <button
+            onClick={() => setSelectedMenu("settings")}
+            onMouseEnter={() => setHoveredSettings(true)}
+            onMouseLeave={() => setHoveredSettings(false)}
+            className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors mb-1"
+            style={{
+              backgroundColor: selectedMenu === "settings" || hoveredSettings ? S.accent : "transparent",
+              color:   selectedMenu === "settings" ? S.primary : hoveredSettings ? S.accentFg : S.muted,
+              border:  "none",
+              cursor:  "pointer",
+            }}
+          >
+            <Settings
+              className="h-4 w-4 shrink-0"
+              style={{ color: selectedMenu === "settings" ? S.primary : hoveredSettings ? S.accentFg : S.muted }}
+            />
+            {!collapsed && <span>Settings</span>}
+          </button>
+
+          {/* Logout button */}
           <button
             onClick={logout}
             onMouseEnter={() => setHoveredLogout(true)}
@@ -149,8 +200,9 @@ export default function DashboardPage() {
             className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors"
             style={{
               backgroundColor: hoveredLogout ? S.accent : "transparent",
-              color:  hoveredLogout ? S.expense : S.muted,
-              border: "none", cursor: "pointer",
+              color:   hoveredLogout ? S.expense : S.muted,
+              border:  "none",
+              cursor:  "pointer",
             }}
           >
             <LogOut className="h-4 w-4 shrink-0" style={{ color: hoveredLogout ? S.expense : S.muted }} />
@@ -170,13 +222,16 @@ export default function DashboardPage() {
 
       {/* ── Main ───────────────────────────────────────────────────────────── */}
       <main className={cn("flex-1 transition-all duration-300", collapsed ? "ml-[68px]" : "ml-[220px]")}>
-
         {/* Top bar */}
         <div style={{
-          position: "sticky", top: 0, zIndex: 20,
-          display: "flex", justifyContent: "flex-end", alignItems: "center",
-          padding: "0.75rem 1.5rem",
-          background: "hsl(220,14%,97%)",
+          position:     "sticky",
+          top:          0,
+          zIndex:       20,
+          display:      "flex",
+          justifyContent: "flex-end",
+          alignItems:   "center",
+          padding:      "0.75rem 1.5rem",
+          background:   "hsl(220,14%,97%)",
           borderBottom: "1px solid hsl(220,13%,89%)",
         }}>
           <NotificationPanel
@@ -188,13 +243,21 @@ export default function DashboardPage() {
 
         {/* Page content */}
         <div className="p-6 lg:p-8">
-          {selectedMenu === "dashboard"        && <DashboardOverview userRole={userRole} userId={userID} />}
-          {selectedMenu === "transactions"     && <Transactions />}
-          {selectedMenu === "reports"          && <Reports />}
-          {selectedMenu === "manageCategories" && isAdmin && (
-            <ManageCategories onClose={() => setSelectedMenu("dashboard")} />
+          {/* Gate: deactivated users only see Settings */}
+          {isDeactivated ? (
+            <SettingsPage />
+          ) : (
+            <>
+              {selectedMenu === "dashboard"        && <DashboardOverview userRole={userRole} userId={userID} />}
+              {selectedMenu === "transactions"     && <Transactions />}
+              {selectedMenu === "reports"          && <Reports />}
+              {selectedMenu === "manageCategories" && isAdmin && (
+                <ManageCategories onClose={() => setSelectedMenu("dashboard")} />
+              )}
+              {selectedMenu === "manageUsers"      && isAdmin && <ManageUsers />}
+              {selectedMenu === "settings"         && <SettingsPage />}
+            </>
           )}
-          {selectedMenu === "manageUsers" && isAdmin && <ManageUsers />}
         </div>
       </main>
 
