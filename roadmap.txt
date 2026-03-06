@@ -105,7 +105,7 @@ Extra Future Features (If clients needs/wants it ):
 - etc.., depends on client.
 
 
-NOTE: Deployment is implemented for learning and technical exposure. However, the intended production environment for TransacScope is a secured local business network (LAN-based deployment), ensuring financial data remains internal and protected.
+NOTE: Deployment is implemented for learning and technical exposure. However, the intended production environment for TransacScope is a secured local business network (LAN-based deployment), ensuring financial data remains internal and protected. There should be no Register if real used in the business
 
 
 Built-in data validation with Pydantic, perfect for multiple transaction endpoints and categories. Type safety → early error detection.
