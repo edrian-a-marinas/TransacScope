@@ -2,7 +2,7 @@ from db.connection import get_pool
 from app.schemas.users import UserCreate
 from fastapi import HTTPException
 import asyncpg
-from datetime import datetime
+from datetime import datetime, timezone
 import bcrypt
 
 
@@ -59,8 +59,7 @@ async def insert_user(user: UserCreate, conn):
       phone_number,
       role_id,
       is_active,
-      created_at,
-      request_admin;
+      created_at;
   """
   values = (
       user.email,
@@ -105,5 +104,6 @@ async def create_user(user: UserCreate):
     raise HTTPException(status_code=400, detail="Email already registered.")
   except HTTPException:
     raise
-  except Exception:
+  except Exception as e:
+    print(f"REGISTER ERROR: {e}")
     raise HTTPException(status_code=500, detail="Internal server error.")
