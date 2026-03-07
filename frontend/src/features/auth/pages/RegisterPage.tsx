@@ -78,8 +78,16 @@ export default function Register() {
       setMessage("Verification code sent to your email.");
       setSendCooldown(COOLDOWN_TIME);
       setSendCount(prev => prev + 1);
-    } catch {
-      setErrors(["Failed to send verification code."]);
+    } catch (err: any) {
+        if (err.response?.status === 500) {
+          setErrors(["Server error — unable to send email. Please try again later."]);
+        } else if (err.response?.status === 429) {
+          setErrors(["Too many attempts. Please wait 10 minutes before trying again."]);
+        } else if (!err.response) {
+          setErrors(["Cannot reach the server. Please check your connection."]);
+        } else {
+          setErrors(["Failed to send verification code. Please try again."]);
+        }
     } finally {
       setLoading(false);
     }

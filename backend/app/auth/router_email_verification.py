@@ -3,49 +3,42 @@ from pydantic import BaseModel, EmailStr
 from db.connection import get_pool
 from datetime import datetime, timedelta
 import random
-import aiosmtplib
-from email.message import EmailMessage
-from email.utils import formataddr
 import os
 import bcrypt
+import sib_api_v3_sdk
+from sib_api_v3_sdk.rest import ApiException
 from dotenv import load_dotenv
 
 router = APIRouter(prefix="/api/auth")
 
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), "../../.env"))
 
+BREVO_API_KEY = os.getenv("BREVO_API_KEY")
 
 class EmailSchema(BaseModel):
   email: EmailStr
 
-
-SMTP_HOST     = "smtp.gmail.com"
-SMTP_PORT     = 2525
-SMTP_USER     = os.getenv("SMTP_USER")
-SMTP_PASS     = os.getenv("SMTP_PASS")
-DISPLAY_NAME  = "TransacScope"
 
 MAX_SENDS        = 3
 SEND_WINDOW_MINS = 10
 
 
 async def send_email(to_email: str, subject: str, body: str) -> None:
-  message = EmailMessage()
-  message["From"] = formataddr((DISPLAY_NAME, SMTP_USER))  # type: ignore
-  message["To"] = to_email
-  message["Subject"] = subject
-  message.set_content(body, subtype="html")
+  configuration = sib_api_v3_sdk.Configuration()
+  configuration.api_key["api-key"] = BREVO_API_KEY
+  api_instance = sib_api_v3_sdk.TransactionalEmailsApi(
+    sib_api_v3_sdk.ApiClient(configuration)
+  )
+  send_smtp_email = sib_api_v3_sdk.SendSmtpEmail(
+    to=[{"email": to_email}],
+    sender={"name": "TransacScope", "email": "edrian.a.marinas@gmail.com"},
+    subject=subject,
+    html_content=body,
+  )
   try:
-    await aiosmtplib.send(
-      message,
-      hostname=SMTP_HOST,
-      port=SMTP_PORT,
-      start_tls=True,
-      username=SMTP_USER,
-      password=SMTP_PASS,
-    )
-  except Exception as e:
-    print(f"SMTP ERROR: {e}")
+    api_instance.send_transac_email(send_smtp_email)
+  except ApiException as e:
+    print(f"BREVO ERROR: {e}")
     raise HTTPException(status_code=500, detail="Failed to send email")
 
 
