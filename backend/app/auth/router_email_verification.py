@@ -99,13 +99,6 @@ async def send_code(data: EmailSchema):
   return {"detail": "If this email exists, a verification code has been sent."}
 
 
-# FROM
-#<img src="https://vitejs.dev/logo.svg" ... />
-
-# TO — host your logo somewhere public, e.g. your deployed frontend URL
-#<img src="https://your-deployed-domain.com/transacScope1.svg" ... />
-
-
 def create_body_html(formatted_code: str) -> str:
   body = f"""
 <!DOCTYPE html>
@@ -122,12 +115,9 @@ def create_body_html(formatted_code: str) -> str:
                 <table cellpadding="0" cellspacing="0">
                   <tr>
                     <td style="padding-right:10px; vertical-align:middle;">
-                      <img src="https://vitejs.dev/logo.svg" width="32" height="32" style="border-radius:8px; display:block;" alt="TransacScope" />
+                      <img src="https://transacscope.vercel.app/transacScope1.svg" width="490" height="80" style="border-radius:8px; display:block;" alt="TransacScope" />
                     </td>
                     <td style="vertical-align:middle;">
-                      <p style="margin:0; font-size:15px; font-weight:700; color:#d4d8e2; letter-spacing:-0.02em;">
-                        TransacScope
-                      </p>
                     </td>
                   </tr>
                 </table>
