@@ -25,13 +25,13 @@ export function useServerCheck() {
           setShowTopbar(true);
           setTimeout(() => setShowTopbar(false), 3000);
         }
-        scheduleNextCheck(checkServerHealth, timeoutRef, 30000);
+        scheduleNextCheck(checkServerHealth, timeoutRef, 90000);
       } catch {
         if (serverStatus !== 'disconnected') {
           setServerStatus('disconnected');
           setShowTopbar(true);
         }
-        scheduleNextCheck(checkServerHealth, timeoutRef, 1000);
+        scheduleNextCheck(checkServerHealth, timeoutRef, 3000);
       }
     }
     checkServerHealth();
