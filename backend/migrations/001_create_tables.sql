@@ -151,6 +151,16 @@ CREATE TABLE transaction_deletion_requests (
         FOREIGN KEY (reviewed_by)    REFERENCES users(id)
 );
 
+-- 11. password_history
+CREATE TABLE password_history (
+  id           SERIAL PRIMARY KEY,
+  user_id      INT         NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  password_hash TEXT       NOT NULL,
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_password_history_user_id ON password_history(user_id);
+
 
 
 COMMIT;

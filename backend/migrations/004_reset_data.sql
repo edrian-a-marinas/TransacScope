@@ -1,10 +1,10 @@
 -- =========================================
--- 002_reset_data.sql
+-- 004_reset_data.sql
 -- Wipes all transactional data for a clean
 -- demo/test run. Users and roles are preserved.
 -- =========================================
 -- Run:
---   \i /home/edrian/Projects/Transaction-Processing/backend/migrations/002_reset_data.sql
+--   \i /home/edrian/Projects/Transaction-Processing/backend/migrations/004_reset_data.sql
 
 BEGIN;
 
