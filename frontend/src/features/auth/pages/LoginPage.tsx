@@ -11,6 +11,7 @@ import { useParticles } from "../lib/useParticles";
 import { buildAuthStyles } from "../lib/authStyles";
 import PrototypeBadge from "../lib/authToolTip";
 import WatchDemoLink from "../lib/authDemoVid";
+import DemoAccountTooltip from "../lib/authDemoTooltip";
 
 // ── Frontend rate-limit config (mirrors backend) ──────────────────────────────
 const FE_MAX_ATTEMPTS    = 5;
@@ -37,16 +38,25 @@ function saveLockout(data: LockoutData) {
 function clearLockout() {
   localStorage.removeItem(LOCKOUT_KEY);
 }
+
 export default function Login() {
   const { setLoggedIn, setUser } = useContext(AuthContext);
   const particles = useParticles();
 
-  const [form,          setForm]          = useState<LoginForm>({ email: "", password: "" });
-  const [errors,        setErrors]        = useState<string[]>([]);
-  const [loading,       setLoading]       = useState(false);
-  const [mounted,       setMounted]       = useState(false);
-  const [lockedUntil,   setLockedUntil]   = useState<number | null>(null);
-  const [lockCountdown, setLockCountdown] = useState(0);
+  const [form,            setForm]            = useState<LoginForm>({ email: "", password: "" });
+  const [errors,          setErrors]          = useState<string[]>([]);
+  const [loading,         setLoading]         = useState(false);
+  const [mounted,         setMounted]         = useState(false);
+  const [lockedUntil,     setLockedUntil]     = useState<number | null>(null);
+  const [lockCountdown,   setLockCountdown]   = useState(0);
+  const [showSlowWarning, setShowSlowWarning] = useState(false);
+
+  // Show slow-login topbar only if loading takes more than 1.5s
+  useEffect(() => {
+    if (!loading) { setShowSlowWarning(false); return; }
+    const t = setTimeout(() => setShowSlowWarning(true), 1500);
+    return () => clearTimeout(t);
+  }, [loading]);
 
   useEffect(() => {
     const t = setTimeout(() => setMounted(true), 60);
@@ -154,12 +164,40 @@ export default function Login() {
         .lockout-title  { font-size: 13px; font-weight: 600; color: hsl(45,85%,65%); margin-bottom: 4px; }
         .lockout-timer  { font-size: 26px; font-weight: 700; font-family: 'DM Mono', monospace; color: hsl(45,85%,60%); letter-spacing: 0.05em; margin-bottom: 4px; }
         .lockout-sub    { font-size: 11.5px; color: hsl(45,85%,40%); }
-        .stats-row { display: flex; gap: 1rem; justify-content: center; }
-        .stat-badge { display: flex; flex-direction: column; align-items: center; gap: 2px; flex: 1; }
-        .stat-num   { font-size: 13px; font-weight: 700; font-family: 'DM Mono', monospace; color: ${S.foreground}; }
-        .stat-lbl   { font-size: 10px; color: ${S.muted}; letter-spacing: 0.04em; text-transform: uppercase; }
-        .stat-dot   { width: 6px; height: 6px; border-radius: 50%; margin-bottom: 2px; }
       `}</style>
+
+      {/* ── Slow login topbar ── */}
+      {showSlowWarning && (
+        <div style={{
+          position:        "fixed",
+          top:             0,
+          left:            0,
+          right:           0,
+          zIndex:          50,
+          display:         "flex",
+          alignItems:      "center",
+          justifyContent:  "center",
+          gap:             "0.5rem",
+          padding:         "0.5rem 1rem",
+          fontSize:        "0.8rem",
+          fontWeight:      600,
+          letterSpacing:   "0.01em",
+          backgroundColor: "hsl(45 85% 50% / 0.10)",
+          borderBottom:    "1px solid hsl(45 85% 50% / 0.25)",
+          color:           "hsl(45, 85%, 60%)",
+        }}>
+          <span style={{
+            display:         "inline-block",
+            width:           "6px",
+            height:          "6px",
+            borderRadius:    "50%",
+            backgroundColor: "hsl(45, 85%, 60%)",
+            flexShrink:      0,
+            animation:       "ts-pulse 1s ease-in-out infinite",
+          }} />
+          Backend is waking up on free tier — first sign-in may take 1–3 minutes. Please wait…
+        </div>
+      )}
 
       <div className="login-root">
         {particles.map(p => (
@@ -180,14 +218,14 @@ export default function Login() {
           </div>
 
           <div className="logo-row" style={{ justifyContent: "flex-start" }}>
-            <img 
-              src="/transacScope1.svg" 
-              alt="TransacScope" 
+            <img
+              src="/transacScope1.svg"
+              alt="TransacScope"
               style={{ height: "100px", width: "auto" }}
             />
           </div>
-          <p className="card-subtitle" style={{ textAlign: "center" }}>Sign in to your account to continue</p>
 
+          <p className="card-subtitle" style={{ textAlign: "center" }}>Sign in to your account to continue</p>
 
           <div className="accent-line" />
 
@@ -228,6 +266,7 @@ export default function Login() {
                 />
               </div>
             </div>
+
             <button className="submit-btn" type="submit" disabled={loading || isLocked}>
               <span className="btn-inner">
                 {loading && <span className="spinner" />}
@@ -237,6 +276,11 @@ export default function Login() {
           </form>
 
           <div className="card-divider" />
+
+          {/* ── Demo account tooltip ── */}
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: "1rem" }}>
+            <DemoAccountTooltip />
+          </div>
 
           <p style={{ textAlign: "center", fontSize: "11.5px", color: S.muted, letterSpacing: "0.03em" }}>
             Track income, expenses & net profit — all in one place.
