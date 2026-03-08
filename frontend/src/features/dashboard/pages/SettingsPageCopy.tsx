@@ -1,4 +1,4 @@
-// SettingsPage.tsx
+// SettingsPage.tsx  — production version (no demo account)
 import { useState, useContext, useEffect, useRef } from "react";
 import {
   User, Phone, Mail, Shield, Calendar, Edit3,
@@ -68,19 +68,19 @@ function EditableField({ label, value, onChange, placeholder, type = "text" }: {
   );
 }
 
-function PasswordField({ label, value, onChange, placeholder, disabled = false }: { label: string; value: string; onChange: (v: string) => void; placeholder?: string; disabled?: boolean }) {
+function PasswordField({ label, value, onChange, placeholder }: { label: string; value: string; onChange: (v: string) => void; placeholder?: string }) {
   const [show, setShow] = useState(false);
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "0.35rem" }}>
       <label className="ts-page-fg-light" style={{ fontSize: "0.72rem", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>{label}</label>
       <div style={{ position: "relative" }}>
-        <input type={show ? "text" : "password"} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} disabled={disabled} className="ts-surface ts-page-fg"
-          style={{ width: "100%", padding: "0.55rem 2.5rem 0.55rem 0.75rem", borderRadius: "0.45rem", border: "1px solid hsl(var(--page-border))", fontSize: "0.85rem", outline: "none", transition: "border-color 0.15s", boxSizing: "border-box", cursor: disabled ? "not-allowed" : "text" }}
-          onFocus={e => { if (!disabled) e.target.style.borderColor = "hsl(var(--primary))"; }}
+        <input type={show ? "text" : "password"} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} className="ts-surface ts-page-fg"
+          style={{ width: "100%", padding: "0.55rem 2.5rem 0.55rem 0.75rem", borderRadius: "0.45rem", border: "1px solid hsl(var(--page-border))", fontSize: "0.85rem", outline: "none", transition: "border-color 0.15s", boxSizing: "border-box" }}
+          onFocus={e => (e.target.style.borderColor = "hsl(var(--primary))")}
           onBlur={e  => (e.target.style.borderColor = "hsl(var(--page-border))")}
         />
-        <button type="button" onClick={() => !disabled && setShow(p => !p)} tabIndex={disabled ? -1 : 0}
-          style={{ position: "absolute", right: "0.6rem", top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: disabled ? "not-allowed" : "pointer", padding: "0.2rem", color: "hsl(var(--page-fg-muted))", display: "flex", alignItems: "center" }}>
+        <button type="button" onClick={() => setShow(p => !p)}
+          style={{ position: "absolute", right: "0.6rem", top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", padding: "0.2rem", color: "hsl(var(--page-fg-muted))", display: "flex", alignItems: "center" }}>
           {show ? <EyeOff style={{ width: "0.85rem", height: "0.85rem" }} /> : <Eye style={{ width: "0.85rem", height: "0.85rem" }} />}
         </button>
       </div>
@@ -141,7 +141,6 @@ export default function SettingsPage() {
   const initials      = getInitials(user.first_name, user.last_name);
   const isDeactivated = !user.is_active;
   const isSuperAdmin  = user.id === 1 && user.role_id === 1;
-  const isDemoAccount = user.id === 3; // DELETE THIS LINE IN THE FUTURE
   const roleLabel =
     user.id === 1 && user.role_id === 1 ? "Super Admin"
     : user.role_id === 1               ? "Admin"
@@ -163,10 +162,9 @@ export default function SettingsPage() {
   const isExpired = expiresAt ? new Date(expiresAt) < new Date() : false;
 
   const expirySubtitle = (): string => {
-    if (isDemoAccount)  return "Update your login password to keep your account secure";
-    if (expiryLoading)  return "Checking password expiry…";
-    if (!expiresAt)     return "Update your login password to keep your account secure";
-    if (isExpired)      return `Password expired on ${formatExpiryDate(expiresAt)} — please update it`;
+    if (expiryLoading) return "Checking password expiry…";
+    if (!expiresAt)    return "Update your login password to keep your account secure";
+    if (isExpired)     return `Password expired on ${formatExpiryDate(expiresAt)} — please update it`;
     return `Your password will expire on ${formatExpiryDate(expiresAt)}`;
   };
 
@@ -216,7 +214,7 @@ export default function SettingsPage() {
     setPwError(null); setPwSuccess(false); setPwFieldErrs([]);
   };
   const handlePasswordChange = async () => {
-    if (!token || !tokenType || isDemoAccount) return;
+    if (!token || !tokenType) return;
     const errs = validatePasswordChange({ currentPw, newPw, confirmPw });
     if (errs.length > 0) { setPwFieldErrs(errs); return; }
     setPwFieldErrs([]); setPwSaving(true); setPwError(null); setPwSuccess(false);
@@ -226,7 +224,6 @@ export default function SettingsPage() {
       setCurrentPw(""); setNewPw(""); setConfirmPw("");
       setPwFieldErrs([]); setPwError(null);
       setTimeout(() => setPwSuccess(false), 3500);
-      // Refresh expiry date after successful change
       api.get("api/users/me/password-expiry", { headers: { Authorization: `${tokenType} ${token}` } })
         .then(res => setExpiresAt(res.data.expires_at ?? null))
         .catch(() => {});
@@ -376,41 +373,18 @@ export default function SettingsPage() {
       {/* ━━━━━━━━━━━━ SECURITY TAB ━━━━━━━━━━━━ */}
       {activeTab === "security" && (
         <div className="ts-card ts-card-shadow" style={{ overflow: "hidden" }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "1rem 1.5rem", borderBottom: "1px solid hsl(var(--page-border))" }}>
-            <div>
-              <p className="ts-page-fg" style={{ fontSize: "0.9rem", fontWeight: 700, margin: 0 }}>Change Password</p>
-              <p style={{
-                fontSize:   "0.75rem",
-                margin:     "0.15rem 0 0",
-                fontWeight: isExpired && !isDemoAccount ? 600 : 400,
-                color:      isExpired && !isDemoAccount ? C.expense : "hsl(var(--page-fg-light))",
-              }}>
-                {expirySubtitle()}
-              </p>
-            </div>
-            {isDemoAccount && (
-              <span style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", padding: "0.2rem 0.6rem", borderRadius: "999px", fontSize: "0.68rem", fontWeight: 700, backgroundColor: "hsl(var(--warning) / 0.12)", color: C.warning, border: `1px solid ${C.warning}40`, flexShrink: 0 }}>
-                <Lock style={{ width: "0.6rem", height: "0.6rem" }} />
-                Demo Account Protected
-              </span>
-            )}
+          <div style={{ padding: "1rem 1.5rem", borderBottom: "1px solid hsl(var(--page-border))" }}>
+            <p className="ts-page-fg" style={{ fontSize: "0.9rem", fontWeight: 700, margin: 0 }}>Change Password</p>
+            <p style={{ fontSize: "0.75rem", margin: "0.15rem 0 0", fontWeight: isExpired ? 600 : 400, color: isExpired ? C.expense : "hsl(var(--page-fg-light))" }}>
+              {expirySubtitle()}
+            </p>
           </div>
 
           <div style={{ padding: "1.5rem", display: "flex", flexDirection: "column", gap: "1.25rem" }}>
-
-            {/* Expired banner */}
-            {isExpired && !isDemoAccount && (
+            {isExpired && (
               <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", padding: "0.75rem 1rem", borderRadius: "0.5rem", background: "hsl(var(--expense) / 0.07)", border: "1px solid hsl(var(--expense) / 0.3)", fontSize: "0.78rem", color: C.expense }}>
                 <AlertTriangle style={{ width: "0.8rem", height: "0.8rem", flexShrink: 0 }} />
                 Your password has expired. Please update it now.
-              </div>
-            )}
-
-            {/* Demo restriction */}
-            {isDemoAccount && (
-              <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", padding: "0.75rem 1rem", borderRadius: "0.5rem", background: "hsl(var(--warning) / 0.06)", border: `1px solid ${C.warning}30`, fontSize: "0.78rem", color: C.warning }}>
-                <Lock style={{ width: "0.8rem", height: "0.8rem", flexShrink: 0 }} />
-                Password changes are disabled for the Demo account. This section is shown for reference only.
               </div>
             )}
 
@@ -422,19 +396,19 @@ export default function SettingsPage() {
               </div>
             )}
 
-            <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem", opacity: isDemoAccount ? 0.4 : 1, pointerEvents: isDemoAccount ? "none" : "auto" }}>
-              <PasswordField label="Current Password"     value={currentPw}  onChange={setCurrentPw}  placeholder="Enter your current password" disabled={isDemoAccount} />
-              <PasswordField label="New Password"         value={newPw}       onChange={setNewPw}       placeholder="At least 8 characters"        disabled={isDemoAccount} />
-              <PasswordField label="Confirm New Password" value={confirmPw}   onChange={setConfirmPw}   placeholder="Repeat your new password"     disabled={isDemoAccount} />
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+              <PasswordField label="Current Password"     value={currentPw}  onChange={setCurrentPw}  placeholder="Enter your current password" />
+              <PasswordField label="New Password"         value={newPw}       onChange={setNewPw}       placeholder="At least 8 characters" />
+              <PasswordField label="Confirm New Password" value={confirmPw}   onChange={setConfirmPw}   placeholder="Repeat your new password" />
             </div>
 
             <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.5rem" }}>
-              <button onClick={resetPwForm} disabled={isDemoAccount} className="ts-page-fg-light ts-surface"
-                style={{ display: "flex", alignItems: "center", gap: "0.35rem", padding: "0.5rem 1rem", borderRadius: "0.45rem", fontSize: "0.78rem", fontWeight: 600, border: "1px solid hsl(var(--page-border))", cursor: isDemoAccount ? "not-allowed" : "pointer", opacity: isDemoAccount ? 0.4 : 1 }}>
+              <button onClick={resetPwForm} className="ts-page-fg-light ts-surface"
+                style={{ display: "flex", alignItems: "center", gap: "0.35rem", padding: "0.5rem 1rem", borderRadius: "0.45rem", fontSize: "0.78rem", fontWeight: 600, border: "1px solid hsl(var(--page-border))", cursor: "pointer" }}>
                 <X style={{ width: "0.8rem", height: "0.8rem" }} /> Clear
               </button>
-              <button onClick={handlePasswordChange} disabled={pwSaving || isDemoAccount}
-                style={{ display: "flex", alignItems: "center", gap: "0.4rem", padding: "0.5rem 1.1rem", borderRadius: "0.45rem", fontSize: "0.78rem", fontWeight: 600, border: "none", background: pwSaving || isDemoAccount ? "hsl(var(--primary) / 0.4)" : "hsl(var(--primary))", color: "hsl(0,0%,100%)", cursor: pwSaving || isDemoAccount ? "not-allowed" : "pointer", transition: "background 0.15s" }}>
+              <button onClick={handlePasswordChange} disabled={pwSaving}
+                style={{ display: "flex", alignItems: "center", gap: "0.4rem", padding: "0.5rem 1.1rem", borderRadius: "0.45rem", fontSize: "0.78rem", fontWeight: 600, border: "none", background: pwSaving ? "hsl(var(--primary) / 0.4)" : "hsl(var(--primary))", color: "hsl(0,0%,100%)", cursor: pwSaving ? "not-allowed" : "pointer", transition: "background 0.15s" }}>
                 {pwSaving
                   ? <><span style={{ width: "0.8rem", height: "0.8rem", border: "2px solid hsl(0 0% 100% / 0.3)", borderTopColor: "white", borderRadius: "50%", animation: "spin 0.7s linear infinite", display: "inline-block", flexShrink: 0 }} /> Saving…</>
                   : <><KeyRound style={{ width: "0.8rem", height: "0.8rem" }} /> Change Password</>
@@ -464,24 +438,24 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          <div style={{ background: "hsl(var(--page-surface))", border: "1px solid hsl(var(--expense) / 0.25)", borderRadius: "0.75rem", overflow: "hidden", boxShadow: "0 1px 4px hsl(var(--expense) / 0.06)", opacity: isSuperAdmin || isDemoAccount ? 0.6 : 1 /* REMOVE isDemoAccount IN THE FUTURE */ }}>
+          <div style={{ background: "hsl(var(--page-surface))", border: "1px solid hsl(var(--expense) / 0.25)", borderRadius: "0.75rem", overflow: "hidden", boxShadow: "0 1px 4px hsl(var(--expense) / 0.06)", opacity: isSuperAdmin ? 0.6 : 1 }}>
             <div style={{ padding: "0.875rem 1.5rem", borderBottom: "1px solid hsl(var(--expense) / 0.2)", background: "hsl(var(--expense) / 0.04)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               <div>
                 <p style={{ fontSize: "0.85rem", fontWeight: 700, color: C.expense, margin: 0 }}>Danger Zone</p>
                 <p className="ts-page-fg-light" style={{ fontSize: "0.73rem", margin: "0.15rem 0 0" }}>Permanent and irreversible actions</p>
               </div>
-              {(isSuperAdmin || isDemoAccount) && (
+              {isSuperAdmin && (
                 <span style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", padding: "0.2rem 0.6rem", borderRadius: "999px", fontSize: "0.68rem", fontWeight: 700, backgroundColor: "hsl(var(--warning) / 0.12)", color: C.warning, border: `1px solid ${C.warning}40` }}>
                   <Lock style={{ width: "0.6rem", height: "0.6rem" }} />
-                  {isSuperAdmin ? "Super Admin Protected" : "Demo Account Protected"}
+                  Super Admin Protected
                 </span>
               )}
             </div>
             <div style={{ padding: "1.25rem 1.5rem" }}>
-              {(isSuperAdmin || isDemoAccount) && (
+              {isSuperAdmin && (
                 <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.6rem 0.875rem", borderRadius: "0.4rem", background: "hsl(var(--warning) / 0.07)", border: `1px solid ${C.warning}30`, fontSize: "0.75rem", color: C.warning, marginBottom: "1rem" }}>
                   <Lock style={{ width: "0.75rem", height: "0.75rem", flexShrink: 0 }} />
-                  {isSuperAdmin ? "The Super Admin account cannot be deleted. This section is shown for reference only." : "The Demo account cannot be deleted. This section is shown for reference only."}
+                  The Super Admin account cannot be deleted. This section is shown for reference only.
                 </div>
               )}
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem", flexWrap: "wrap" }}>
@@ -491,7 +465,7 @@ export default function SettingsPage() {
                     Permanently deletes your account. Your past transactions will be retained for record-keeping. This action <strong>cannot be undone</strong>.
                   </p>
                 </div>
-                {(isSuperAdmin || isDemoAccount) ? (
+                {isSuperAdmin ? (
                   <button disabled style={{ display: "flex", alignItems: "center", gap: "0.4rem", padding: "0.5rem 1rem", borderRadius: "0.45rem", fontSize: "0.78rem", fontWeight: 600, border: "1px solid hsl(var(--expense) / 0.2)", background: "hsl(var(--expense) / 0.04)", color: "hsl(var(--expense) / 0.35)", cursor: "not-allowed", flexShrink: 0 }}>
                     <Lock style={{ width: "0.8rem", height: "0.8rem" }} />
                     Delete Account
