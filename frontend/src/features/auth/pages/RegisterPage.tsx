@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import api from "../../../services/apiClient";
+import { Eye, EyeOff } from "lucide-react";
 import { validateRegister } from "../schemas/register";
 import type { RegisterForm } from "../schemas/register";
 import { S } from "../lib/authConst";
@@ -25,6 +26,7 @@ export default function Register() {
   const [sendCooldown,     setSendCooldown]     = useState(0);
   const [sendCount,        setSendCount]        = useState(0);
   const [mounted,          setMounted]          = useState(false);
+  const [showPassword,     setShowPassword]     = useState(true);
 
   // Card mount animation
   useEffect(() => {
@@ -162,6 +164,11 @@ export default function Register() {
         .field-grid .field-wrap.full { grid-column: 1 / -1; }
         .required-star  { color: ${S.expense}; font-size: 10px; }
         .optional-tag   { font-size: 9.5px; color: hsl(220,10%,36%); font-weight: 500; letter-spacing: 0.03em; text-transform: none; font-style: italic; }
+
+        /* ── Password toggle ── */
+        .pw-wrap        { position: relative; }
+        .pw-wrap .field-input { padding-right: 2.25rem; box-sizing: border-box; }
+        .pw-toggle      { position: absolute; right: 0.6rem; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; padding: 0.2rem; display: flex; align-items: center; color: hsl(220,10%,62%); }
 
         /* ── Register-only: verify step ── */
         .countdown-box {
@@ -310,11 +317,26 @@ export default function Register() {
 
                 <div className="field-wrap full">
                   <label className="field-label">Password <span className="required-star">*</span></label>
-                  <input
-                    className="field-input" type="password" name="password"
-                    value={form.password} onChange={handleChange}
-                    placeholder="Create a strong password" maxLength={72} required
-                  />
+                  <div className="pw-wrap">
+                    <input
+                      className="field-input"
+                      type={showPassword ? "password" : "text"}
+                      name="password"
+                      value={form.password} onChange={handleChange}
+                      placeholder="Create a strong password" maxLength={72} required
+                    />
+                    <button
+                      type="button"
+                      className="pw-toggle"
+                      onClick={() => setShowPassword(p => !p)}
+                      tabIndex={-1}
+                    >
+                      {showPassword
+                        ? <EyeOff style={{ width: "0.85rem", height: "0.85rem" }} />
+                        : <Eye    style={{ width: "0.85rem", height: "0.85rem" }} />
+                      }
+                    </button>
+                  </div>
                 </div>
               </div>
 
