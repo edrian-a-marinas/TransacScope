@@ -60,6 +60,8 @@ export type ReadTransactionHistory = {
   user_id:                  number;
   category_id:              number;
   transaction_type:         "Expense" | "Income";
+  old_amount:               string | null;
+  new_amount:               string | null;
   old_description:          string | null;
   new_description:          string | null;
   old_transaction_date:     string | null;

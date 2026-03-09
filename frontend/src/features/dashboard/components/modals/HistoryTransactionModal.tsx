@@ -28,7 +28,7 @@ const td: React.CSSProperties = {
   whiteSpace:   "nowrap",
 };
 
-// ── PortalDropdown — stays local, unique to this modal ───────────────────────
+// ── PortalDropdown ────────────────────────────────────────────────────────────
 interface PortalDropdownProps {
   anchorRef: React.RefObject<HTMLElement | null>;
   open:      boolean;
@@ -105,6 +105,7 @@ export default function HistoryTransaction({ onClose }: OnCloseProps) {
   const { user }  = useContext(AuthContext);
   const isAdmin   = user!.role_id === 1;
   const { handleMouseDown, handleMouseUp } = useOutsideClickStrict(onClose);
+
   const token     = localStorage.getItem("access_token");
   const tokenType = localStorage.getItem("token_type");
 
@@ -167,7 +168,6 @@ export default function HistoryTransaction({ onClose }: OnCloseProps) {
     return rows;
   })();
 
-  // Sortable TH
   const Th = ({ field, children }: { field: SortField; children: React.ReactNode }) => {
     const active = sortField === field;
     return (
@@ -188,8 +188,13 @@ export default function HistoryTransaction({ onClose }: OnCloseProps) {
   const updateCount = history.filter(r => (r.action ?? "").toLowerCase() === "updated" || (r.action ?? "").toLowerCase() === "update").length;
   const deleteCount = history.filter(r => (r.action ?? "").toLowerCase() === "deleted" || (r.action ?? "").toLowerCase() === "delete").length;
 
+  const totalCols = isAdmin ? 12 : 11;
+
+  const fmtAmount = (val: string | null | undefined) =>
+    val ? `₱${parseFloat(val).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "—";
+
   return (
-    <ShellTable maxWidth="1400px" onBackdropDown={handleMouseDown} onBackdropUp={handleMouseUp}>
+    <ShellTable maxWidth="1600px" onBackdropDown={handleMouseDown} onBackdropUp={handleMouseUp}>
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "1.25rem 1.5rem", borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
         <div>
@@ -229,21 +234,23 @@ export default function HistoryTransaction({ onClose }: OnCloseProps) {
       )}
 
       {/* Table */}
-      <div style={{ overflowY: "auto", overflowX: "hidden", flex: 1 }}>
+      <div style={{ overflowY: "auto", overflowX: "auto", flex: 1 }}>
         {loading && <p style={{ color: C.fgMuted, padding: "2rem", textAlign: "center" }}>Loading…</p>}
         {!loading && (
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.8rem", tableLayout: "fixed" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.8rem", tableLayout: "fixed", minWidth: "1150px" }}>
             <colgroup>
               <col style={{ width: "5%" }} />
               {isAdmin && <col style={{ width: "5%" }} />}
+              <col style={{ width: "10%" }} />
+              <col style={{ width: "7%" }} />
+              <col style={{ width: "8%" }} />
+              <col style={{ width: "10%" }} />
+              <col style={{ width: "8%" }} />
+              <col style={{ width: "8%" }} />
               <col style={{ width: "13%" }} />
-              <col style={{ width: "8%" }} />
-              <col style={{ width: "9%" }} />
-              <col style={{ width: "12%" }} />
-              <col style={{ width: "16%" }} />
-              <col style={{ width: "16%" }} />
-              <col style={{ width: "8%" }} />
-              <col style={{ width: "8%" }} />
+              <col style={{ width: "13%" }} />
+              <col style={{ width: "7%" }} />
+              <col style={{ width: "7%" }} />
             </colgroup>
             <thead style={{ position: "sticky", top: 0, zIndex: 10 }}>
               <tr>
@@ -255,6 +262,8 @@ export default function HistoryTransaction({ onClose }: OnCloseProps) {
                   <ActionDropdown value={actionFilter} onChange={setActionFilter} />
                 </th>
                 <Th field="action_taken_at">Action At</Th>
+                <ThPlain>Old Amount</ThPlain>
+                <ThPlain>New Amount</ThPlain>
                 <ThPlain>Old Description</ThPlain>
                 <ThPlain>New Description</ThPlain>
                 <ThPlain>Old Date</ThPlain>
@@ -264,18 +273,19 @@ export default function HistoryTransaction({ onClose }: OnCloseProps) {
             <tbody>
               {processed.length === 0 ? (
                 <tr>
-                  <td colSpan={isAdmin ? 10 : 9} style={{ padding: "2rem", textAlign: "center", color: C.fgMuted, fontSize: "0.85rem" }}>
+                  <td colSpan={totalCols} style={{ padding: "2rem", textAlign: "center", color: C.fgMuted, fontSize: "0.85rem" }}>
                     {actionFilter !== "all" ? `No ${actionFilter === "UPDATE" ? "update" : "delete"} records found.` : "No history records found."}
                   </td>
                 </tr>
               ) : processed.map((tx, idx) => {
-                const isEven      = idx % 2 === 0;
-                const actionLower = (tx.action ?? "").toLowerCase();
-                const isUpdate    = actionLower === "update" || actionLower === "updated";
-                const actionColor = isUpdate ? ACTION_COLOR["UPDATE"] : ACTION_COLOR["DELETE"];
-                const isIncome    = tx.transaction_type === "Income";
-                const descChanged = tx.old_description !== tx.new_description;
-                const dateChanged = tx.old_transaction_date !== tx.new_transaction_date;
+                const isEven        = idx % 2 === 0;
+                const actionLower   = (tx.action ?? "").toLowerCase();
+                const isUpdate      = actionLower === "update" || actionLower === "updated";
+                const actionColor   = isUpdate ? ACTION_COLOR["UPDATE"] : ACTION_COLOR["DELETE"];
+                const isIncome      = tx.transaction_type === "Income";
+                const amountChanged = tx.old_amount !== tx.new_amount;
+                const descChanged   = tx.old_description !== tx.new_description;
+                const dateChanged   = tx.old_transaction_date !== tx.new_transaction_date;
                 return (
                   <tr
                     key={tx.id}
@@ -297,8 +307,13 @@ export default function HistoryTransaction({ onClose }: OnCloseProps) {
                       </span>
                     </td>
                     <td style={{ ...td, color: C.fgMuted }}>{formatDate(tx.action_taken_at)}</td>
+                    {/* Amount */}
+                    <td style={{ ...td, color: amountChanged ? C.expense : C.fgMuted }}>{fmtAmount(tx.old_amount)}</td>
+                    <td style={{ ...td, color: amountChanged ? C.income  : C.fgMuted }}>{fmtAmount(tx.new_amount)}</td>
+                    {/* Description */}
                     <td style={{ ...td, color: descChanged ? C.expense : C.fgMuted, whiteSpace: "normal", wordBreak: "break-word" }}>{tx.old_description || "—"}</td>
                     <td style={{ ...td, color: descChanged ? C.income  : C.fgMuted, whiteSpace: "normal", wordBreak: "break-word" }}>{tx.new_description || "—"}</td>
+                    {/* Date */}
                     <td style={{ ...td, color: dateChanged ? C.expense : C.fgMuted }}>{tx.old_transaction_date || "—"}</td>
                     <td style={{ ...td, color: dateChanged ? C.income  : C.fgMuted }}>{tx.new_transaction_date || "—"}</td>
                   </tr>

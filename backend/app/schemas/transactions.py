@@ -38,6 +38,8 @@ class TransactionHistoryRead(BaseModel):
   user_id: int
   category_id: Optional[int] = None
   transaction_type: Optional[str] = None
+  old_amount: Optional[str] = None
+  new_amount: Optional[str] = None
   old_description: Optional[str] = None
   new_description: Optional[str] = None
   old_transaction_date: Optional[date] = None
