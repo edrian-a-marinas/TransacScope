@@ -1,6 +1,7 @@
 import { useState, useContext, useEffect } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 import { Link } from "react-router-dom";
+import { Eye, EyeOff } from "lucide-react";
 import { validateLogin } from "../schemas/login";
 import type { LoginForm } from "../schemas/login";
 import { UserSchema } from "../schemas/userAuth";
@@ -12,17 +13,14 @@ import { buildAuthStyles } from "../lib/authStyles";
 import PrototypeBadge from "../lib/authToolTip";
 import WatchDemoLink from "../lib/authDemoVid";
 import DemoAccountTooltip from "../lib/authDemoTooltip";
-
 // ── Frontend rate-limit config (mirrors backend) ──────────────────────────────
 const FE_MAX_ATTEMPTS    = 5;
 const FE_LOCKOUT_MINUTES = 3;
 const LOCKOUT_KEY        = "login_lockout";
-
 interface LockoutData {
   attempts:    number;
   lockedUntil: number | null;
 }
-
 function getLockout(): LockoutData {
   try {
     const raw = localStorage.getItem(LOCKOUT_KEY);
@@ -38,11 +36,9 @@ function saveLockout(data: LockoutData) {
 function clearLockout() {
   localStorage.removeItem(LOCKOUT_KEY);
 }
-
 export default function Login() {
   const { setLoggedIn, setUser, setPasswordExpired } = useContext(AuthContext);
   const particles = useParticles();
-
   const [form,            setForm]            = useState<LoginForm>({ email: "", password: "" });
   const [errors,          setErrors]          = useState<string[]>([]);
   const [loading,         setLoading]         = useState(false);
@@ -50,19 +46,17 @@ export default function Login() {
   const [lockedUntil,     setLockedUntil]     = useState<number | null>(null);
   const [lockCountdown,   setLockCountdown]   = useState(0);
   const [showSlowWarning, setShowSlowWarning] = useState(false);
-
+  const [showPassword,    setShowPassword]    = useState(true);
   // Show slow-login topbar only if loading takes more than 1.5s
   useEffect(() => {
     if (!loading) { setShowSlowWarning(false); return; }
     const t = setTimeout(() => setShowSlowWarning(true), 1500);
     return () => clearTimeout(t);
   }, [loading]);
-
   useEffect(() => {
     const t = setTimeout(() => setMounted(true), 60);
     return () => clearTimeout(t);
   }, []);
-
   useEffect(() => {
     const data = getLockout();
     if (data.lockedUntil && data.lockedUntil > Date.now()) {
@@ -71,7 +65,6 @@ export default function Login() {
       clearLockout();
     }
   }, []);
-
   useEffect(() => {
     if (!lockedUntil) { setLockCountdown(0); return; }
     const tick = () => {
@@ -88,11 +81,9 @@ export default function Login() {
     const interval = setInterval(tick, 1000);
     return () => clearInterval(interval);
   }, [lockedUntil]);
-
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
-
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
     if (loading || lockedUntil) return;
@@ -107,7 +98,6 @@ export default function Login() {
       localStorage.setItem("access_token", access_token);
       localStorage.setItem("token_type", token_type);
       localStorage.setItem("password_expired", String(password_expired ?? false));
-
       clearLockout();
       setLoggedIn(true);
       setUser(parsedUser);
@@ -142,15 +132,12 @@ export default function Login() {
       setLoading(false);
     }
   };
-
   const formatCountdown = (secs: number) => {
     const m = Math.floor(secs / 60).toString().padStart(2, "0");
     const s = (secs % 60).toString().padStart(2, "0");
     return `${m}:${s}`;
   };
-
   const isLocked = !!lockedUntil && lockedUntil > Date.now();
-
   return (
     <>
       <title>TransacScope — Sign In</title>
@@ -167,8 +154,11 @@ export default function Login() {
         .lockout-title  { font-size: 13px; font-weight: 600; color: hsl(45,85%,65%); margin-bottom: 4px; }
         .lockout-timer  { font-size: 26px; font-weight: 700; font-family: 'DM Mono', monospace; color: hsl(45,85%,60%); letter-spacing: 0.05em; margin-bottom: 4px; }
         .lockout-sub    { font-size: 11.5px; color: hsl(45,85%,40%); }
+        .pw-wrap        { position: relative; }
+        .pw-wrap .field-input { padding-right: 2.25rem; }
+        .pw-toggle      { position: absolute; right: 0.6rem; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; padding: 0.2rem; display: flex; align-items: center; color: hsl(220,10%,62%); }
+        .pw-toggle:disabled { cursor: not-allowed; }
       `}</style>
-
       {/* ── Slow login topbar ── */}
       {showSlowWarning && (
         <div style={{
@@ -201,7 +191,6 @@ export default function Login() {
           Backend is waking up on free tier — first sign-in may take 1–3 minutes. Please wait…
         </div>
       )}
-
       <div className="login-root">
         {particles.map(p => (
           <span
@@ -212,14 +201,11 @@ export default function Login() {
             {p.label}
           </span>
         ))}
-
         <div className={`login-card${mounted ? " mounted" : ""}`}>
-
           {/* ── Prototype badge ── */}
           <div style={{ display: "flex", justifyContent: "center", marginBottom: "14px" }}>
             <PrototypeBadge />
           </div>
-
           <div className="logo-row" style={{ justifyContent: "flex-start" }}>
             <img
               src="/transacScope1.svg"
@@ -227,11 +213,8 @@ export default function Login() {
               style={{ height: "100px", width: "auto" }}
             />
           </div>
-
           <p className="card-subtitle" style={{ textAlign: "center" }}>Sign in to your account to continue</p>
-
           <div className="accent-line" />
-
           {isLocked && (
             <div className="lockout-box">
               <p className="lockout-title">⚠ Too many failed attempts</p>
@@ -239,13 +222,11 @@ export default function Login() {
               <p className="lockout-sub">Please wait before trying again</p>
             </div>
           )}
-
           {!isLocked && errors.length > 0 && (
             <div className="error-box">
               {errors.map((err, i) => <p key={i}>⚠ {err}</p>)}
             </div>
           )}
-
           <form onSubmit={handleSubmit}>
             <div className="field-group">
               <div className="field-wrap">
@@ -260,16 +241,29 @@ export default function Login() {
               </div>
               <div className="field-wrap">
                 <label className="field-label" htmlFor="password">Password</label>
-                <input
-                  id="password" className="field-input"
-                  type="password" name="password"
-                  placeholder="••••••••"
-                  value={form.password} onChange={handleChange}
-                  disabled={isLocked} required
-                />
+                <div className="pw-wrap">
+                  <input
+                    id="password" className="field-input"
+                    type={showPassword ? "password" : "text"} name="password"
+                    placeholder="••••••••"
+                    value={form.password} onChange={handleChange}
+                    disabled={isLocked} required
+                  />
+                  <button
+                    type="button"
+                    className="pw-toggle"
+                    onClick={() => setShowPassword(p => !p)}
+                    disabled={isLocked}
+                    tabIndex={-1}
+                  >
+                    {showPassword
+                      ? <EyeOff style={{ width: "0.85rem", height: "0.85rem" }} />
+                      : <Eye    style={{ width: "0.85rem", height: "0.85rem" }} />
+                    }
+                  </button>
+                </div>
               </div>
             </div>
-
             <button className="submit-btn" type="submit" disabled={loading || isLocked}>
               <span className="btn-inner">
                 {loading && <span className="spinner" />}
@@ -277,24 +271,18 @@ export default function Login() {
               </span>
             </button>
           </form>
-
           <div className="card-divider" />
-
           {/* ── Demo account tooltip ── */}
           <div style={{ display: "flex", justifyContent: "center", marginBottom: "1rem" }}>
             <DemoAccountTooltip />
           </div>
-
           <p style={{ textAlign: "center", fontSize: "11.5px", color: S.muted, letterSpacing: "0.03em" }}>
             Track income, expenses & net profit — all in one place.
           </p>
-
           <p className="card-footer" style={{ marginTop: "1.25rem" }}>
             Don't have an account? <Link to="/register">Create one</Link>
           </p>
-
           <div className="card-divider" style={{ marginTop: "1.25rem" }} />
-
           <div className="watch-demo-wrap">
             <WatchDemoLink />
           </div>
