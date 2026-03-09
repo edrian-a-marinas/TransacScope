@@ -69,12 +69,12 @@ function EditableField({ label, value, onChange, placeholder, type = "text" }: {
 }
 
 function PasswordField({ label, value, onChange, placeholder, disabled = false }: { label: string; value: string; onChange: (v: string) => void; placeholder?: string; disabled?: boolean }) {
-  const [show, setShow] = useState(false);
+  const [show, setShow] = useState(true);
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "0.35rem" }}>
       <label className="ts-page-fg-light" style={{ fontSize: "0.72rem", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>{label}</label>
       <div style={{ position: "relative" }}>
-        <input type={show ? "text" : "password"} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} disabled={disabled} className="ts-surface ts-page-fg"
+        <input type={show ? "password" : "text"} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} disabled={disabled} className="ts-surface ts-page-fg"
           style={{ width: "100%", padding: "0.55rem 2.5rem 0.55rem 0.75rem", borderRadius: "0.45rem", border: "1px solid hsl(var(--page-border))", fontSize: "0.85rem", outline: "none", transition: "border-color 0.15s", boxSizing: "border-box", cursor: disabled ? "not-allowed" : "text" }}
           onFocus={e => { if (!disabled) e.target.style.borderColor = "hsl(var(--primary))"; }}
           onBlur={e  => (e.target.style.borderColor = "hsl(var(--page-border))")}

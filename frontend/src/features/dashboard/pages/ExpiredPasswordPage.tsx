@@ -35,7 +35,7 @@ function PasswordField({
       </label>
       <div style={{ position: "relative" }}>
         <input
-          type={show ? "text" : "password"}
+          type={show ? "password" : "text"}
           value={value}
           onChange={e => onChange(e.target.value)}
           style={{
@@ -76,9 +76,9 @@ export default function ExpiredPasswordPage() {
   const [currentPw, setCurrentPw] = useState("");
   const [newPw,     setNewPw]     = useState("");
   const [confirmPw, setConfirmPw] = useState("");
-  const [showCur,   setShowCur]   = useState(false);
-  const [showNew,   setShowNew]   = useState(false);
-  const [showCon,   setShowCon]   = useState(false);
+  const [showCur,   setShowCur]   = useState(true);
+  const [showNew,   setShowNew]   = useState(true);
+  const [showCon,   setShowCon]   = useState(true);
   const [errors,    setErrors]    = useState<string[]>([]);
   const [apiError,  setApiError]  = useState<string | null>(null);
   const [success,   setSuccess]   = useState(false);
