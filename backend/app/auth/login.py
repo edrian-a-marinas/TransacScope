@@ -38,11 +38,17 @@ async def count_recent_attempts(email: str, ip: str | None, conn) -> int:
   return count or 0
 
 
-async def clear_attempts(email: str, conn) -> None:
-  await conn.execute(
-    "DELETE FROM login_attempts WHERE email = $1",
-    email,
-  )
+async def clear_attempts(email: str, ip: str | None, conn) -> None:
+  if ip:
+    await conn.execute(
+      "DELETE FROM login_attempts WHERE email = $1 OR ip_address = $2",
+      email, ip,
+    )
+  else:
+    await conn.execute(
+      "DELETE FROM login_attempts WHERE email = $1",
+      email,
+    )
 
 
 async def purge_old_attempts(conn) -> None:
@@ -81,5 +87,5 @@ async def verify_user(email: str, password: str, ip: str | None = None) -> dict 
       await record_failed_attempt(email, ip, conn)
       return None
 
-    await clear_attempts(email, conn)
+    await clear_attempts(email, ip, conn)
     return user
