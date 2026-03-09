@@ -1,11 +1,12 @@
 import { useState, useContext } from "react";
 import { AuthContext } from "../../auth/AuthContext";
-import { Users, Eye, ShieldCheck, Trash2, UserCircle } from "lucide-react";
+import { Users, Eye, ShieldCheck, Trash2, UserCircle, Receipt } from "lucide-react";
 import {
   ReadUsers,
   PromoteUser,
   UserDetails,
   HandleDeletionRequest,
+  UserTransactions,   // ← add this export to your modals/index.ts
 } from "../components/modals";
 import { ActionButton } from "../components/overview/ActionCard";
 import type { ActionCard } from "../components/overview/ActionCard";
@@ -15,13 +16,13 @@ const C = {
   income:  "hsl(var(--income))",
   expense: "hsl(var(--expense))",
   purple:  "hsl(280,60%,55%)",
+  teal:    "hsl(174,60%,45%)",
 };
 
 export default function ManageUsersPage() {
   const { user } = useContext(AuthContext);
   const userRole = user!.role_id;
   const userID   = user!.id;
-
   const isSuperAdmin = userID === 1 && userRole === 1;
   const isAdmin      = userRole === 1 || userRole === 2;
 
@@ -29,6 +30,7 @@ export default function ManageUsersPage() {
   const [showPromoteModal,       setShowPromoteModal]       = useState(false);
   const [showDetailsModal,       setShowDetailsModal]       = useState(false);
   const [showHandleRequestModal, setShowHandleRequestModal] = useState(false);
+  const [showUserTxModal,        setShowUserTxModal]        = useState(false);
   const [hoveredCard,            setHoveredCard]            = useState<string | null>(null);
 
   const actions: ActionCard[] = [
@@ -50,6 +52,14 @@ export default function ManageUsersPage() {
       bgColor:     "hsl(280 60% 55% / 0.08)",
       onClick:     () => setShowDetailsModal(true),
     },
+    ...(isAdmin ? [{
+      label:       "User Transactions",
+      description: "View all transactions for a specific user",
+      icon:        Receipt,
+      color:       C.teal,
+      bgColor:     "hsl(174 60% 45% / 0.08)",
+      onClick:     () => setShowUserTxModal(true),
+    }] : []),
     ...(isSuperAdmin ? [{
       label:       "Promote / Demote User",
       description: "Change a user's role or access level",
@@ -72,7 +82,6 @@ export default function ManageUsersPage() {
     <>
       <title>Manage Users</title>
       <div className="space-y-6">
-        {/* Page header */}
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-2">
             <Users className="h-5 w-5" style={{ color: C.primary }} />
@@ -87,7 +96,6 @@ export default function ManageUsersPage() {
           </p>
         </div>
 
-        {/* Action cards */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {actions.map((action, idx) => (
             <ActionButton
@@ -101,10 +109,11 @@ export default function ManageUsersPage() {
         </div>
       </div>
 
-      {showReadModal          && <ReadUsers            onClose={() => setShowReadModal(false)}          />}
-      {showPromoteModal       && <PromoteUser          onClose={() => setShowPromoteModal(false)}       />}
-      {showHandleRequestModal && <HandleDeletionRequest onClose={() => setShowHandleRequestModal(false)} />}
-      {showDetailsModal       && <UserDetails          onClose={() => setShowDetailsModal(false)}       />}
+      {showReadModal          && <ReadUsers              onClose={() => setShowReadModal(false)}          />}
+      {showPromoteModal       && <PromoteUser            onClose={() => setShowPromoteModal(false)}       />}
+      {showHandleRequestModal && <HandleDeletionRequest  onClose={() => setShowHandleRequestModal(false)} />}
+      {showDetailsModal       && <UserDetails            onClose={() => setShowDetailsModal(false)}       />}
+      {showUserTxModal        && <UserTransactions  onClose={() => setShowUserTxModal(false)}        />}
     </>
   );
 }

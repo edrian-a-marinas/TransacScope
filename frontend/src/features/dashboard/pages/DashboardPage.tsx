@@ -247,7 +247,7 @@ export default function DashboardPage() {
           {!collapsed && (
             <div className="mb-3 rounded-lg px-3 py-2" style={{ backgroundColor: S.accent }}>
               <p className="text-xs font-semibold" style={{ color: S.accentFg }}>{user.first_name}</p>
-              <p className="text-[10px]" style={{ color: S.muted }}>{roleLabel} - ID{userID}</p>
+              <p className="text-[10px]" style={{ color: S.muted }}>{roleLabel} - ID #{userID}</p>
             </div>
           )}
           <button

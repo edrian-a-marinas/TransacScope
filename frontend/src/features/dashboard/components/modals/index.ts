@@ -12,7 +12,7 @@ export { default as ReadUsers } from "./ReadUserModal";
 export { default as PromoteUser } from "./PromoteUserModal"
 export { default as HandleDeletionRequest } from "./HandleDeletionRequestModal";
 export { default as UserDetails } from "./UserDetailModal";
-
+export { default as UserTransactions } from "./UserTransactionsModal";
 
 
 
