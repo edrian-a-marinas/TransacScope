@@ -185,11 +185,13 @@ async def update_transaction(tx_id: int, tx, current_user_id: int, role: str) ->
           """
           UPDATE transactions
           SET
-            description = COALESCE($1, description),
-            transaction_date = COALESCE($2, transaction_date)
-          WHERE id = $3
+            amount           = COALESCE($1, amount),
+            description      = COALESCE($2, description),
+            transaction_date = COALESCE($3, transaction_date)
+          WHERE id = $4
           RETURNING *
           """,
+          tx.amount,
           tx.description,
           tx.transaction_date,
           tx_id,
@@ -202,11 +204,13 @@ async def update_transaction(tx_id: int, tx, current_user_id: int, role: str) ->
           tx_id,
           current_user_id,
           json.dumps({
-            "description": old["description"],
+            "amount":           str(old["amount"]),
+            "description":      old["description"],
             "transaction_date": str(old["transaction_date"]) if old["transaction_date"] else None,
           }),
           json.dumps({
-            "description": updated["description"],
+            "amount":           str(updated["amount"]),
+            "description":      updated["description"],
             "transaction_date": str(updated["transaction_date"]) if updated["transaction_date"] else None,
           }),
         )

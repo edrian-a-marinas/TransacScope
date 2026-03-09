@@ -4,16 +4,13 @@ from typing import Optional
 from decimal import Decimal
 from enum import Enum
 
-
 class ActionType(str, Enum):
   updated = "updated"
   deleted = "deleted"
 
-
 class TransactionType(str, Enum):
   Expense = "Expense"
   Income = "Income"
-
 
 class TransactionCreate(BaseModel):
   amount: Decimal = Field(gt=Decimal("0"), max_digits=12, decimal_places=2)
@@ -22,21 +19,18 @@ class TransactionCreate(BaseModel):
   transaction_date: date
   transaction_type: TransactionType
 
-
 class TransactionOut(TransactionCreate):
   id: int
 
-
 class TransactionUpdate(BaseModel):
-  description: Optional[str] = None
-  transaction_date: Optional[date] = None
-
+  amount:           Optional[Decimal] = Field(default=None, gt=Decimal("0"), max_digits=12, decimal_places=2)
+  description:      Optional[str]     = None
+  transaction_date: Optional[date]    = None
 
 class TransactionRead(TransactionOut):
   category_name: str
   user_id: int
   created_at: datetime
-
 
 class TransactionHistoryRead(BaseModel):
   id: int
@@ -52,14 +46,11 @@ class TransactionHistoryRead(BaseModel):
   action_taken_at: datetime
   model_config = ConfigDict(from_attributes=True)
 
-
 class TransactionDeletionRequestCreate(BaseModel):
   transaction_id: int
 
-
 class ReviewDeletionRequestPayload(BaseModel):
   approve: bool
-
 
 class TransactionInfoRead(BaseModel):
   id: int
@@ -69,7 +60,6 @@ class TransactionInfoRead(BaseModel):
   description: Optional[str] = None
   transaction_type: str
   transaction_date: date
-
 
 class TransactionDeletionRequestRead(BaseModel):
   id: int
@@ -82,11 +72,9 @@ class TransactionDeletionRequestRead(BaseModel):
   transaction: Optional[TransactionInfoRead] = None
   model_config = ConfigDict(from_attributes=True)
 
-
 class ReviewerInfo(BaseModel):
   first_name: str
   last_name: str
-
 
 class DeletionRequestHistoryRead(BaseModel):
   id: int
@@ -97,6 +85,6 @@ class DeletionRequestHistoryRead(BaseModel):
   reviewed_by: Optional[int] = None
   reviewed_at: Optional[datetime] = None
   requester: Optional[ReviewerInfo] = None
-  reviewer: Optional[ReviewerInfo] = None
+  reviewer:  Optional[ReviewerInfo] = None
   transaction: Optional[TransactionInfoRead] = None
   model_config = ConfigDict(from_attributes=True)
