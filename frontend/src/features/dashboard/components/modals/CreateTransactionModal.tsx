@@ -307,6 +307,7 @@ export default function CreateTransaction({ onClose }: OnCloseProps) {
         />
 
         {/* Type badge */}
+        <div style={{ marginBottom: "1rem" }}></div>
         <div style={{ textAlign: "center", marginBottom: "1.25rem" }}>
           <span style={{
             display:         "inline-block",

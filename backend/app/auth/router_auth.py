@@ -6,6 +6,25 @@ from .security import create_access_token, get_current_user
 from app.services.users_service import get_user_by_id, get_password_expiry
 from datetime import datetime, timezone
 
+""" 
+── LAN DEPLOYMENT ONLY ──────────────────────────────────────────────────────
+import os
+from dotenv import load_dotenv
+
+load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), "../../.env"))
+
+REGISTER_ALLOWED_IP = os.getenv("REGISTER_ALLOWED_IP", "127.0.0.1")
+
+
+@router.post("/register", response_model=UserRead)
+async def register_user(user: UserCreate, request: Request):
+  client_ip = request.client.host if request.client else None
+  if client_ip != REGISTER_ALLOWED_IP:
+    raise HTTPException(status_code=403, detail="Registration not allowed from this network.")
+  return await create_user(user)
+
+"""
+
 router = APIRouter(prefix="/api/auth")
 
 
@@ -19,20 +38,14 @@ async def login_user(payload: UserLogin, request: Request):
   ip = request.client.host if request.client else None
   db_user = await verify_user(payload.email, payload.password, ip)
   if not db_user:
-    # Generic message — don't reveal whether the account exists or is inactive
     raise HTTPException(status_code=401, detail="Invalid email or password.")
 
   expires_at    = await get_password_expiry(db_user["id"])
   now           = datetime.now(timezone.utc)
-  # expires_at is None when the user has never changed their password (no
-  # password_history row yet) — treat as NOT expired in that case.
   password_expired = (
     expires_at is not None and expires_at < now
   )
 
-  # Issue token regardless of is_active or password_expired.
-  # Both flags are embedded in the token so the frontend can gate routing
-  # without an extra /me call on every page load.
   access_token = create_access_token({
     "user_id":          db_user["id"],
     "role_id":          db_user["role_id"],
