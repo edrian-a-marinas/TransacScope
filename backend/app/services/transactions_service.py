@@ -12,7 +12,7 @@ async def get_transactions(current_user_id: int, role: str) -> list[dict]:
   try:
     pool = await get_pool()
     async with pool.acquire() as conn:
-      if role == "admin" or role == 1:
+      if role == "admin":
         rows = await conn.fetch(
           """
           SELECT t.*, c.name AS category_name
@@ -44,7 +44,7 @@ async def get_transaction_by_id(tx_id: int, current_user_id: int, role: str) -> 
   try:
     pool = await get_pool()
     async with pool.acquire() as conn:
-      if role == "admin" or role == 1:
+      if role == "admin":
         row = await conn.fetchrow(
           """
           SELECT t.*, c.name AS category_name
@@ -78,7 +78,7 @@ async def get_transaction_history(current_user_id: int, role: str) -> list[dict]
   try:
     pool = await get_pool()
     async with pool.acquire() as conn:
-      if role == "admin" or role == 1:
+      if role == "admin":
         rows = await conn.fetch(
           """
           SELECT
@@ -233,7 +233,7 @@ async def delete_transaction(tx_id: int, current_user_id: int, role: str) -> boo
     pool = await get_pool()
     async with pool.acquire() as conn:
       async with conn.transaction():
-        if role != "admin" and role != 1:
+        if role != "admin":
           return None
         tx = await conn.fetchrow(
           "SELECT * FROM transactions WHERE id = $1 AND deleted_at IS NULL",
@@ -412,7 +412,7 @@ async def get_deletion_requests_my_history(current_user_id: int, role: str) -> l
   try:
     pool = await get_pool()
     async with pool.acquire() as conn:
-      if role == "admin" or role == 1:
+      if role == "admin":
         rows = await conn.fetch(
           """
           SELECT
@@ -521,7 +521,7 @@ async def count_transactions_by_category(category_id: int, current_user_id: int,
   try:
     pool = await get_pool()
     async with pool.acquire() as conn:
-      if role == "admin" or role == 1:
+      if role == "admin":
         count = await conn.fetchval(
           "SELECT COUNT(*) FROM transactions WHERE category_id = $1 AND deleted_at IS NULL",
           category_id,
