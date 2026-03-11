@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/features/dashboard/c
 import { ArrowDownLeft, ArrowUpRight, Info } from "lucide-react";
 import { useState } from "react";
 import type { ReadTransaction } from "@/features/dashboard/schemas/transaction";
-import TransactionDetailModal from "../modals/SpecificTransactionModal";
+import SpecificTransactionModal from "../modals/SpecificTransactionModal";
 
 const INCOME_COLOR  = "hsl(160,60%,45%)";
 const EXPENSE_COLOR = "hsl(0,72%,51%)";
@@ -43,11 +43,13 @@ export default function RecentTransactions({ transactions, getCategoryName, open
   const now = new Date();
   const [selected, setSelected] = useState<ReadTransaction | null>(null);
 
-  const recent = transactions
-    .filter((t) => !t.deleted_at)
-    .filter((t) => new Date(t.transaction_date) <= now)
+  const allVisible = transactions
+    .filter(t => !t.deleted_at)
+    .filter(t => new Date(t.transaction_date) <= now);
+
+  const recent = allVisible
     .sort((a, b) => new Date(b.transaction_date).getTime() - new Date(a.transaction_date).getTime())
-    .slice(0, 8);
+    .slice(0, 6);
 
   return (
     <>
@@ -57,7 +59,7 @@ export default function RecentTransactions({ transactions, getCategoryName, open
             Recent Transactions
             <TitleTooltip />
           </CardTitle>
-          <p className="text-xs text-muted-foreground">Latest activity across all users</p>
+          <p className="text-xs text-muted-foreground">{recent.length} recent transaction{recent.length !== 1 ? "s" : ""}</p>
         </CardHeader>
         <CardContent className="px-4 pb-4">
           <div className="space-y-1">
@@ -96,19 +98,21 @@ export default function RecentTransactions({ transactions, getCategoryName, open
             })}
           </div>
 
-          <div className="mt-3 px-3 pb-2">
-            <button
-              onClick={openViewTransactions}
-              className="relative z-10 w-full text-xs font-medium py-2 rounded-md border border-border hover:bg-muted transition-colors cursor-pointer"
-            >
-              View All Transactions
-            </button>
-          </div>
+          {allVisible.length > 6 && (
+            <div className="mt-3 px-3 pb-2">
+              <button
+                onClick={openViewTransactions}
+                className="relative z-10 w-full text-xs font-medium py-2 rounded-md border border-border hover:bg-muted transition-colors cursor-pointer"
+              >
+                View All Transactions
+              </button>
+            </div>
+          )}
         </CardContent>
       </Card>
 
       {selected && (
-        <TransactionDetailModal
+        <SpecificTransactionModal
           transaction={selected}
           getCategoryName={getCategoryName}
           onClose={() => setSelected(null)}
