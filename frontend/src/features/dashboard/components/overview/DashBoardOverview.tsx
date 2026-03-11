@@ -80,10 +80,12 @@ export default function DashboardOverview({ userRole, userId }: DashboardOvervie
   const [openTransactionsModal,  setOpenTransactionsModal]  = useState(false);
   const [transactionTypeFilter,  setTransactionTypeFilter]  = useState<"all" | "Income" | "Expense">("all");
   const [transactionMonthFilter, setTransactionMonthFilter] = useState<string>("all");
+  const [transactionViewMode,    setTransactionViewMode]    = useState<"all" | "own">("all");
 
   const openModal = (filter: "all" | "Income" | "Expense" = "all") => {
     setTransactionTypeFilter(filter);
     setTransactionMonthFilter(period !== "all" ? period : "all");
+    setTransactionViewMode(viewMode);
     setOpenTransactionsModal(true);
   };
 
@@ -432,6 +434,7 @@ export default function DashboardOverview({ userRole, userId }: DashboardOvervie
             onClose={() => setOpenTransactionsModal(false)}
             initialTypeFilter={transactionTypeFilter}
             initialMonthFilter={transactionMonthFilter}
+            initialViewMode={transactionViewMode}
           />
         )}
       </div>

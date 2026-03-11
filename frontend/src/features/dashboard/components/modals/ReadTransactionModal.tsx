@@ -144,9 +144,10 @@ const thBase: React.CSSProperties = {
 interface ReadTransactionsProps extends OnCloseProps {
   initialTypeFilter?:  TypeFilter;
   initialMonthFilter?: string;
+  initialViewMode?:    "all" | "own";
 }
 
-export default function ReadTransactions({ onClose, initialTypeFilter = "all", initialMonthFilter = "all" }: ReadTransactionsProps) {
+export default function ReadTransactions({ onClose, initialTypeFilter = "all", initialMonthFilter = "all", initialViewMode }: ReadTransactionsProps) {
   const { user }  = useContext(AuthContext);
   const isAdmin   = user!.role_id === 1;
   const { handleMouseDown, handleMouseUp } = useOutsideClickStrict(onClose);
@@ -156,12 +157,13 @@ export default function ReadTransactions({ onClose, initialTypeFilter = "all", i
   const [transactions, setTransactions] = useState<ReadTransaction[]>([]);
   const [categories,   setCategories]   = useState<Category[]>([]);
   const [loading,      setLoading]      = useState(true);
-  const [viewMode, setViewMode] = useState<"all" | "own">(isAdmin ? "all" : "own");
+  const [viewMode, setViewMode] = useState<"all" | "own">(initialViewMode ?? (isAdmin ? "all" : "own"));
   const [sortField,    setSortField]    = useState<SortField>("id");
   const [sortDir,      setSortDir]      = useState<SortDir>("desc");
   const [typeFilter,   setTypeFilter]   = useState<TypeFilter>(initialTypeFilter);
   const [monthFilter,  setMonthFilter]  = useState<string>(initialMonthFilter);
   const [searchQuery, setSearchQuery] = useState("");
+  
 
   useEffect(() => {
     const fetchData = async () => {
