@@ -1,5 +1,5 @@
 import { useState, useEffect, useContext } from "react";
-import type { ChangeEvent } from "react";
+import type { ChangeEvent, KeyboardEvent } from "react";
 import { ChevronRight, ChevronLeft, Info } from "lucide-react";
 import api from "@/services/apiClient";
 import { AuthContext } from "@/features/auth/AuthContext";
@@ -122,6 +122,10 @@ export default function CreateTransaction({ onClose }: OnCloseProps) {
     setAmountInput(parts.join("."));
   };
 
+  const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") handleSubmit();
+  };
+
   const handleSubmit = () => {
     const updatedForm = { ...form, amount: Number(amountInput) };
     const result = transactionSchema.safeParse(updatedForm);
@@ -167,8 +171,8 @@ export default function CreateTransaction({ onClose }: OnCloseProps) {
         <ErrorBox messages={errors} />
 
         <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-                  <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}></div>
-                  
+          <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}></div>
+
           {/* Type */}
           <div>
             <label style={labelStyle}>Type</label>
@@ -244,6 +248,7 @@ export default function CreateTransaction({ onClose }: OnCloseProps) {
                 type="text"
                 value={amountInput}
                 onChange={handleAmountChange}
+                onKeyDown={handleKeyDown}
                 placeholder="0.00"
                 onFocus={() => setFocusedField("amount")}
                 onBlur={() => setFocusedField(null)}
@@ -260,6 +265,7 @@ export default function CreateTransaction({ onClose }: OnCloseProps) {
               name="description"
               value={form.description}
               onChange={handleChange}
+              onKeyDown={handleKeyDown}
               placeholder="Optional note…"
               onFocus={() => setFocusedField("description")}
               onBlur={() => setFocusedField(null)}
