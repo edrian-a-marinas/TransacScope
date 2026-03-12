@@ -6,9 +6,16 @@ from app.auth import router_auth as authentications
 from app.auth import router_email_verification as email_verification
 from app.routers import transactions, categories, reports, users, notifications
 from tests import test_health
+import logging
+
+logging.basicConfig(
+  level=logging.INFO,
+  format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
+  datefmt="%Y-%m-%d %H:%M:%S",
+)
+
 
 app = FastAPI(**debug_mode())
-
 
 # Apply middleware and limiter
 configure_middlewares(app)
