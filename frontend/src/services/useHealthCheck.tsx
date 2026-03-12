@@ -13,8 +13,10 @@ function scheduleNextCheck(
 
 export function useServerCheck() {
   const [serverStatus, setServerStatus] = useState('connected');
-  const [showTopbar, setShowTopbar] = useState(false);
-  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [showTopbar,   setShowTopbar]   = useState(false);
+  const [showColdStart, setShowColdStart] = useState(false); 
+  const timeoutRef    = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const coldStartRef  = useRef<ReturnType<typeof setTimeout> | null>(null);  
 
   useEffect(() => {
     async function checkServerHealth() {
@@ -25,22 +27,27 @@ export function useServerCheck() {
           setShowTopbar(true);
           setTimeout(() => setShowTopbar(false), 3000);
         }
+        setShowColdStart(false); 
+        if (coldStartRef.current) clearTimeout(coldStartRef.current);  
         scheduleNextCheck(checkServerHealth, timeoutRef, 90000);
       } catch {
         if (serverStatus !== 'disconnected') {
           setServerStatus('disconnected');
           setShowTopbar(true);
         }
+        coldStartRef.current = setTimeout(() => setShowColdStart(true), 3000);
         scheduleNextCheck(checkServerHealth, timeoutRef, 3000);
       }
     }
+
     checkServerHealth();
     return () => {
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      if (timeoutRef.current)   clearTimeout(timeoutRef.current);
+      if (coldStartRef.current) clearTimeout(coldStartRef.current);  
     };
   }, [serverStatus]);
 
-  return { serverStatus, showTopbar };
+  return { serverStatus, showTopbar, showColdStart };  
 }
 
 type ServerStatusProps = {
@@ -48,11 +55,45 @@ type ServerStatusProps = {
 };
 
 export function ServerStatus({ children }: ServerStatusProps) {
-  const { serverStatus, showTopbar } = useServerCheck();
+  const { serverStatus, showTopbar, showColdStart } = useServerCheck();  
 
   return (
     <div style={{ display: "contents" }}>
-      {showTopbar && (
+      {/* Cold start message */}
+      {showColdStart && (                                                
+        <div style={{
+          position:        "fixed",
+          top:             0,
+          left:            0,
+          right:           0,
+          zIndex:          50,
+          display:         "flex",
+          alignItems:      "center",
+          justifyContent:  "center",
+          gap:             "0.5rem",
+          padding:         "0.5rem 1rem",
+          fontSize:        "0.8rem",
+          fontWeight:      600,
+          letterSpacing:   "0.01em",
+          backgroundColor: "hsl(45 85% 50% / 0.10)",
+          borderBottom:    "1px solid hsl(45 85% 50% / 0.25)",
+          color:           "hsl(45, 85%, 60%)",
+        }}>
+          <span style={{
+            display:         "inline-block",
+            width:           "6px",
+            height:          "6px",
+            borderRadius:    "50%",
+            backgroundColor: "hsl(45, 85%, 60%)",
+            flexShrink:      0,
+            animation:       "ts-pulse 1s ease-in-out infinite",
+          }} />
+          Free tier backend is waking up — this may take 1–2 minutes on first load.
+        </div>
+      )}
+
+      {/* Existing reconnect/disconnect topbar */}
+      {showTopbar && !showColdStart && (
         <div
           style={{
             position:        "fixed",
