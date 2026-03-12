@@ -15,23 +15,29 @@ export function useServerCheck() {
   const [serverStatus,  setServerStatus]  = useState('connected');
   const [showTopbar,    setShowTopbar]    = useState(false);
   const [showColdStart, setShowColdStart] = useState(false);
-  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const timeoutRef   = useRef<ReturnType<typeof setTimeout> | null>(null);
   const coldTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Hide cold start the moment AuthContext finishes loading
   useEffect(() => {
-    // If backend already responded this session, never show cold start again
+    const interval = setInterval(() => {
+      if (sessionStorage.getItem("auth_loaded")) {
+        setShowColdStart(false);
+        clearInterval(interval);
+      }
+    }, 100);
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
     const alreadyWoke = sessionStorage.getItem("backend_woke");
 
     async function checkServerHealth() {
       try {
-        //await new Promise(res => setTimeout(res, 6000)) for debug local
         await api.get("health/");
-
-        // Backend responded — hide cold start, mark session as woke
         setShowColdStart(false);
         sessionStorage.setItem("backend_woke", "true");
         if (coldTimerRef.current) clearTimeout(coldTimerRef.current);
-
         if (serverStatus !== 'connected') {
           setServerStatus('connected');
           setShowTopbar(true);
@@ -47,7 +53,6 @@ export function useServerCheck() {
       }
     }
 
-    // Only set cold start timer if backend hasn't woken this session yet
     if (!alreadyWoke) {
       coldTimerRef.current = setTimeout(() => setShowColdStart(true), 3000);
     }
@@ -55,7 +60,7 @@ export function useServerCheck() {
     checkServerHealth();
 
     return () => {
-      if (timeoutRef.current)  clearTimeout(timeoutRef.current);
+      if (timeoutRef.current)   clearTimeout(timeoutRef.current);
       if (coldTimerRef.current) clearTimeout(coldTimerRef.current);
     };
   }, [serverStatus]);
@@ -63,18 +68,17 @@ export function useServerCheck() {
   return { serverStatus, showTopbar, showColdStart };
 }
 
-
 type ServerStatusProps = {
   children: ReactNode;
 };
 
 export function ServerStatus({ children }: ServerStatusProps) {
-  const { serverStatus, showTopbar, showColdStart } = useServerCheck();  
+  const { serverStatus, showTopbar, showColdStart } = useServerCheck();
 
   return (
     <div style={{ display: "contents" }}>
-      {/* Cold start message */}
-      {showColdStart && (                                                
+      {/* Cold start message — only during initial loading screen */}
+      {showColdStart && (
         <div style={{
           position:        "fixed",
           top:             0,

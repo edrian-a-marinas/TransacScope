@@ -35,6 +35,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const tokenType = localStorage.getItem("token_type");
 
     if (!token || !tokenType) {
+      sessionStorage.setItem("auth_loaded", "true")
       setIsLoading(false);
       return;
     }
@@ -54,6 +55,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } catch {
         logout();
       } finally {
+        sessionStorage.setItem("auth_loaded", "true")
         setIsLoading(false);
       }
     })();
