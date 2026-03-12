@@ -12,42 +12,39 @@ function scheduleNextCheck(
 }
 
 export function useServerCheck() {
-  const [serverStatus, setServerStatus] = useState('connected');
-  const [showTopbar,   setShowTopbar]   = useState(false);
-  const [showColdStart, setShowColdStart] = useState(false); 
-  const timeoutRef    = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const coldStartRef  = useRef<ReturnType<typeof setTimeout> | null>(null);  
+  const [serverStatus,  setServerStatus]  = useState('connected');
+  const [showTopbar,    setShowTopbar]    = useState(false);
+  const [showColdStart, setShowColdStart] = useState(true);  // ← true from the start
+  const timeoutRef   = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const coldStartRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     async function checkServerHealth() {
       try {
         await api.get("health/");
+        setShowColdStart(false);  // ← hide as soon as server responds
         if (serverStatus !== 'connected') {
           setServerStatus('connected');
           setShowTopbar(true);
           setTimeout(() => setShowTopbar(false), 3000);
         }
-        setShowColdStart(false); 
-        if (coldStartRef.current) clearTimeout(coldStartRef.current);  
         scheduleNextCheck(checkServerHealth, timeoutRef, 90000);
       } catch {
         if (serverStatus !== 'disconnected') {
           setServerStatus('disconnected');
           setShowTopbar(true);
         }
-        coldStartRef.current = setTimeout(() => setShowColdStart(true), 3000);
         scheduleNextCheck(checkServerHealth, timeoutRef, 3000);
       }
     }
-
     checkServerHealth();
     return () => {
       if (timeoutRef.current)   clearTimeout(timeoutRef.current);
-      if (coldStartRef.current) clearTimeout(coldStartRef.current);  
+      if (coldStartRef.current) clearTimeout(coldStartRef.current);
     };
   }, [serverStatus]);
 
-  return { serverStatus, showTopbar, showColdStart };  
+  return { serverStatus, showTopbar, showColdStart };
 }
 
 type ServerStatusProps = {
