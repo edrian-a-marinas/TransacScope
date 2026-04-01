@@ -10,6 +10,7 @@ backend/.env
 
 *.pyc
 __pycache__/
+.pytest_cache
 
 
 # frontend folder (Vite)
