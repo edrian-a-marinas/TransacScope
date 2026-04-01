@@ -46,7 +46,7 @@ async def insert_user(user: UserCreate, conn):
   )
   VALUES (
       $1,
-      crypt($2, gen_salt('bf')),
+      crypt($2, gen_salt('bf', 12)),
       $3, $4, $5, $6,
       2
   )

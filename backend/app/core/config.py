@@ -46,7 +46,7 @@ def configure_middlewares(app):
   # CORS
   app.add_middleware(
     CORSMiddleware,
-    allow_origins=ALLOWED_ORIGINS,  # replace with frontend URL
+    allow_origins=ALLOWED_ORIGINS,  
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
     allow_headers=["Authorization", "Content-Type", "Accept", "X-Requested-With"],
     allow_credentials=True
