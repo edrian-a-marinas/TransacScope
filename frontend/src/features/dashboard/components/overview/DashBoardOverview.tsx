@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect, useContext, lazy, Suspense } from "react";
+import { useMemo, useState, useEffect, useContext, lazy, Suspense, useRef } from "react";
 import {
   TrendingUp,
   TrendingDown,
@@ -139,8 +139,13 @@ export default function DashboardOverview({ userRole, userId }: DashboardOvervie
   }, [transactions, isAdmin, viewMode, userId]);
 
   // Re-select best period when periods list changes (e.g. after viewMode switch)
+  const initializedRef = useRef(false);
+
   useEffect(() => {
     if (availablePeriods.length === 0) return;
+    if (initializedRef.current) return; // ← skip if already initialized
+    initializedRef.current = true;
+
     const currentYM  = new Date().toISOString().slice(0, 7);
     const hasCurrent = availablePeriods.some(p => p.key === currentYM);
     if (hasCurrent) {
