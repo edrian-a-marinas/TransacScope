@@ -67,17 +67,30 @@ export function useServerCheck() {
       } catch (error: any) {
         // ── Failure ────────────────────────────────────────────────────────
         const errorMessage = error?.message || error?.toString() || "";
+        const requestUrl = error?.config?.url || "";
 
-        // Check for Brave ad blocker blocking
-        if (errorMessage.includes("ERR_BLOCKED_BY_CLIENT") ||
-            errorMessage.includes("Network request failed") && !error?.response) {
+        // Log actual error for debugging
+        console.log("Health check error:", { message: errorMessage, url: requestUrl, error });
+
+        // Check for Brave ad blocker blocking:
+        // - Network Error with no response (blocked before network)
+        // - URL points to Render backend (the blocked target)
+        // - Error string contains ERR_BLOCKED_BY_CLIENT or similar
+        const isBlockedByClient =
+          (errorMessage === "Network Error" && !error?.response && requestUrl.includes("transacscope-fastapi.onrender.com")) ||
+          errorMessage.includes("ERR_BLOCKED_BY_CLIENT") ||
+          errorMessage.includes("net::ERR_BLOCKED_BY_CLIENT") ||
+          (errorMessage.includes("Failed to fetch") && !error?.response && requestUrl.includes("onrender"));
+
+        if (isBlockedByClient) {
           console.warn(
             "%c⚠️ Brave Ad Blocker Detected",
             "background: #ff9500; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold;"
           );
           console.warn(
-            "Your browser is blocking the health check request. " +
-            "If you're using Brave, please turn off Shields for this site to allow connections to the backend."
+            "Your browser (Brave) is blocking the health check request. " +
+            "Please turn off Shields for this site (click the lion icon → turn off Shields) " +
+            "or use another browser to access the application."
           );
         }
 
