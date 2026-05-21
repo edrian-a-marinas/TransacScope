@@ -1,6 +1,6 @@
 # TransacScope
 **Role-Based Business Finance & Transaction Management System**
-> A finance management web app adaptable to any business — track income and expenses, manage staff access, generate reports, and stay in control of your cash flow.
+> A finance management web app built for small businesses on a local network (LAN) — track income and expenses, manage staff access, generate reports, and stay in control of your cash flow.
 
 🔗 **Live:** [transacscope.vercel.app](https://transacscope.vercel.app) &nbsp;·&nbsp; 🎬 **Demo Video:** [Watch here](https://drive.google.com/file/d/1fXCICTBrgaCmMWBpuK1JLUi5SkQ1x5tR/view?usp=sharing)
 
