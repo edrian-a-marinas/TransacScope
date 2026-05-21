@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, EmailStr
 from db.connection import get_pool
 from datetime import datetime, timedelta
@@ -8,6 +8,7 @@ import bcrypt
 import sib_api_v3_sdk
 from sib_api_v3_sdk.rest import ApiException
 from dotenv import load_dotenv
+from app.core.limiter import limiter
 
 router = APIRouter(prefix="/api/auth")
 
@@ -50,7 +51,8 @@ def build_otp_email(code: str) -> tuple[str, str]:
 
 
 @router.post("/send-code")
-async def send_code(data: EmailSchema):
+@limiter.limit("3/minute")
+async def send_code(request: Request, data: EmailSchema):
   pool = await get_pool()
 
   async with pool.acquire() as conn:

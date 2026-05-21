@@ -5,6 +5,7 @@ from .register import create_user
 from .security import create_access_token, get_current_user
 from app.services.users_service import get_user_by_id, get_password_expiry
 from datetime import datetime, timezone
+from app.core.limiter import limiter
 
 """ 
 ── LAN DEPLOYMENT ONLY ──────────────────────────────────────────────────────
@@ -29,11 +30,13 @@ router = APIRouter(prefix="/api/auth")
 
 
 @router.post("/register", response_model=UserRead)
+@limiter.limit("5/minute")
 async def register_user(user: UserCreate):
   return await create_user(user)
 
 
 @router.post("/login")
+@limiter.limit("10/minute")
 async def login_user(payload: UserLogin, request: Request):
   ip = request.client.host if request.client else None
   db_user = await verify_user(payload.email, payload.password, ip)
