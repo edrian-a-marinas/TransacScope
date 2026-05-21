@@ -36,7 +36,7 @@ async def register_user(request: Request, user: UserCreate):
 
 
 @router.post("/login")
-@limiter.limit("10/minute")
+@limiter.limit("5/minute")
 async def login_user(payload: UserLogin, request: Request):
   ip = request.client.host if request.client else None
   db_user = await verify_user(payload.email, payload.password, ip)
