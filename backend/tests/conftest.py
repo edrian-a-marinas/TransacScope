@@ -8,6 +8,7 @@ from httpx import AsyncClient, ASGITransport
 from app.main import app
 from app.auth.format_role import get_user_id_and_role
 from db import connection as db_connection
+import uuid
 
 TEST_DB_CONFIG = {
     "host": "localhost",
@@ -16,6 +17,16 @@ TEST_DB_CONFIG = {
     "password": "edrian",
     "database": "transacscope_test_db",
 }
+
+
+
+async def insert_test_category(conn, name_prefix: str, cat_type: str = "Expense"):
+    unique_name = f"{name_prefix}_{uuid.uuid4().hex[:8]}"
+    row = await conn.fetchrow(
+        "INSERT INTO categories (name, type) VALUES ($1, $2) RETURNING id",
+        unique_name, cat_type
+    )
+    return row["id"]
 
 # ── Single shared pool for entire session ─────────────────────────────────────
 
@@ -66,9 +77,13 @@ async def seed_users(test_pool):
         await conn.execute("DELETE FROM transaction_deletion_requests")
         await conn.execute("DELETE FROM log_history")
         await conn.execute("DELETE FROM transactions")
+        await conn.execute("DELETE FROM log_history")
         await conn.execute(
-    "DELETE FROM users WHERE email IN ('admin@test.com', 'standard@test.com')"
-)
+            "DELETE FROM users WHERE email IN ('admin@test.com', 'standard@test.com')"
+        )
+        await conn.execute(
+            "DELETE FROM categories WHERE name IN ('OldName','SwitchMe','DescTest','ToSoftDelete','GhostCategory','GhostExpense','GhostIncome','LogTest','DeleteLogTest')"
+        )
 
 
 # ── Clean transactions before each test ──────────────────────────────────────
