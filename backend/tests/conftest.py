@@ -1,6 +1,9 @@
 import os
 os.environ["ALLOWED_HOSTS"] = "localhost,127.0.0.1,testserver,test"
 
+from app.core.limiter import limiter
+limiter.enabled = False
+
 import pytest
 import asyncpg
 import pytest_asyncio
@@ -9,6 +12,7 @@ from app.main import app
 from app.auth.format_role import get_user_id_and_role
 from db import connection as db_connection
 import uuid
+
 
 TEST_DB_CONFIG = {
     "host": "localhost",
@@ -28,8 +32,7 @@ async def insert_test_category(conn, name_prefix: str, cat_type: str = "Expense"
     )
     return row["id"]
 
-# ── Single shared pool for entire session ─────────────────────────────────────
-
+# ── Single shared pool for entire session ────────────────────────────────────
 @pytest_asyncio.fixture(scope="session")
 async def test_pool():
     pool = await asyncpg.create_pool(**TEST_DB_CONFIG, min_size=2, max_size=5)
@@ -67,7 +70,6 @@ async def seed_users(test_pool):
             category = await conn.fetchrow(
                 "INSERT INTO categories (name, type) VALUES ('Test Category', 'Expense') RETURNING id"
             )
-
     yield {
         "admin_id": admin["id"],
         "standard_id": standard["id"],
@@ -77,7 +79,7 @@ async def seed_users(test_pool):
         await conn.execute("DELETE FROM transaction_deletion_requests")
         await conn.execute("DELETE FROM log_history")
         await conn.execute("DELETE FROM transactions")
-        await conn.execute("DELETE FROM log_history")
+        await conn.execute("DELETE FROM reports_history")
         await conn.execute(
             "DELETE FROM users WHERE email IN ('admin@test.com', 'standard@test.com')"
         )
@@ -90,7 +92,6 @@ async def seed_users(test_pool):
 
 @pytest_asyncio.fixture(autouse=True)
 async def clean_transactions():
-    # separate pool just for cleanup — never shares with app pool
     cleanup_pool = await asyncpg.create_pool(**TEST_DB_CONFIG, min_size=1, max_size=2)
     async with cleanup_pool.acquire() as conn:
         await conn.execute("DELETE FROM transaction_deletion_requests")
