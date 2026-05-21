@@ -1,6 +1,7 @@
 aiosmtplib==5.1.0
 annotated-doc==0.0.4
 annotated-types==0.7.0
+anyio==4.12.1
 asyncpg==0.31.0
 bcrypt==5.0.0
 certifi==2026.2.25
@@ -9,11 +10,14 @@ charset-normalizer==3.4.5
 click==8.3.1
 cryptography==46.0.5
 Deprecated==1.3.1
+distro==1.9.0
 dnspython==2.8.0
 email-validator==2.3.0
 fastapi==0.133.0
+groq==1.2.0
 h11==0.16.0
 httpcore==1.0.9
+httpx==0.28.1
 idna==3.11
 iniconfig==2.3.0
 limiter==0.5.0
@@ -31,6 +35,7 @@ requests==2.32.5
 sib-api-v3-sdk==7.6.0
 six==1.17.0
 slowapi==0.1.9
+sniffio==1.3.1
 starlette==0.52.1
 StrEnum==0.4.15
 token-bucket==0.3.0
