@@ -1,3 +1,6 @@
+from app.core.limiter import limiter
+limiter.enabled = True
+
 import pytest
 import bcrypt
 from datetime import datetime, timedelta
@@ -214,3 +217,29 @@ async def test_get_me(admin_client, seed_users):
     data = response.json()
     assert data["id"] == seed_users["admin_id"]
     assert data["email"] == "admin@test.com"
+
+
+# ── RATE LIMITING ─────────────────────────────────────────────────────────────
+@pytest.mark.asyncio
+async def test_login_rate_limiting(admin_client):
+    """After 5 failed attempts, login should return 429."""
+    await cleanup_auth_test_user()
+    await seed_otp(TEST_EMAIL, TEST_CODE)
+    await admin_client.post("/api/auth/register", json=REGISTER_PAYLOAD)
+
+    # Exhaust the 5 allowed attempts with wrong password
+    for _ in range(5):
+        await admin_client.post(
+            "/api/auth/login",
+            json={"email": TEST_EMAIL, "password": "WrongPassword999"},
+        )
+
+    # 6th attempt should be blocked
+    response = await admin_client.post(
+        "/api/auth/login",
+        json={"email": TEST_EMAIL, "password": "WrongPassword999"},
+    )
+    assert response.status_code == 429
+    assert "Too many failed login attempts" in response.json()["detail"]
+
+    await cleanup_auth_test_user()
