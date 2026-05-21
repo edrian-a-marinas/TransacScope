@@ -178,3 +178,53 @@ async def test_deleted_transaction_not_returned(admin_client, seed_users):
 
 
 
+# ── SCHEMA VALIDATION/S  ─────────────────────────────────────────────────────────
+
+@pytest.mark.asyncio
+async def test_create_transaction_invalid_type(standard_client, seed_users):
+    payload = {
+        "amount": "100.00",
+        "category_id": seed_users["category_id"],
+        "description": "Test",
+        "transaction_date": "2026-01-01",
+        "transaction_type": "Cash",  # invalid enum value
+    }
+    response = await standard_client.post("/api/transactions/", json=payload)
+    assert response.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_create_transaction_missing_amount(standard_client, seed_users):
+    payload = {
+        "category_id": seed_users["category_id"],
+        "description": "Test",
+        "transaction_date": "2026-01-01",
+        "transaction_type": "Expense",
+    }
+    response = await standard_client.post("/api/transactions/", json=payload)
+    assert response.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_create_transaction_missing_category(standard_client, seed_users):
+    payload = {
+        "amount": "100.00",
+        "description": "Test",
+        "transaction_date": "2026-01-01",
+        "transaction_type": "Expense",
+    }
+    response = await standard_client.post("/api/transactions/", json=payload)
+    assert response.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_create_transaction_invalid_date_format(standard_client, seed_users):
+    payload = {
+        "amount": "100.00",
+        "category_id": seed_users["category_id"],
+        "description": "Test",
+        "transaction_date": "not-a-date",
+        "transaction_type": "Expense",
+    }
+    response = await standard_client.post("/api/transactions/", json=payload)
+    assert response.status_code == 422
