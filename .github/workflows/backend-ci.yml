@@ -44,7 +44,7 @@ jobs:
 
       - name: Set up test database
         env:
-          PGPASSWORD: testpassword
+          PGPASSWORD: edrian
         run: |
           psql -h localhost -U transaction_user -d transacscope_test_db -c "CREATE EXTENSION IF NOT EXISTS pgcrypto;"
           psql -h localhost -U transaction_user -d transacscope_test_db -f backend/migrations/001_create_tables.sql
