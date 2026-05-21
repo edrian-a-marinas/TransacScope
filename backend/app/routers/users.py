@@ -65,12 +65,13 @@ async def hard_delete(request: Request, user_data: Tuple[int, str] = Depends(get
 @router.put("/{target_user_id}/role", response_model=UserRead)
 @limiter.limit("20/minute")
 async def update_role(request: Request, target_user_id: int, payload: UserRoleUpdate, user_data: Tuple[int, str] = Depends(get_user_id_and_role)):
-  user_id, role = user_data
-  current_user_role = "admin" if role == "admin" else "standard"
-  updated_user = await users_service.update_user_role(target_user_id, payload.role_id, user_id, current_user_role)
-  if not updated_user:
-    raise HTTPException(status_code=403, detail="Cannot update role or user not found")
-  return updated_user
+    user_id, role = user_data
+    if user_id != SUPER_ADMIN_ID:
+        raise HTTPException(status_code=403, detail="Only super admin can update roles")
+    updated_user = await users_service.update_user_role(target_user_id, payload.role_id, user_id, role)
+    if not updated_user:
+        raise HTTPException(status_code=403, detail="Cannot update role or user not found")
+    return updated_user
 
 
 @router.put("/{target_user_id}/restore")
