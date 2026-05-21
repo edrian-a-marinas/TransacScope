@@ -17,7 +17,7 @@ jobs:
         image: postgres:16-alpine
         env:
           POSTGRES_USER: transaction_user
-          POSTGRES_PASSWORD: edrian
+          POSTGRES_PASSWORD: ${{ secrets.DB_PASSWORD }}
           POSTGRES_DB: transacscope_test_db
         ports:
           - 5432:5432
@@ -44,7 +44,7 @@ jobs:
 
       - name: Set up test database
         env:
-          PGPASSWORD: edrian
+          PGPASSWORD: ${{ secrets.DB_PASSWORD }}
         run: |
           psql -h localhost -U transaction_user -d transacscope_test_db -c "CREATE EXTENSION IF NOT EXISTS pgcrypto;"
           psql -h localhost -U transaction_user -d transacscope_test_db -f backend/migrations/001_create_tables.sql
@@ -60,7 +60,7 @@ jobs:
           DB_HOST: localhost
           DB_PORT: 5432
           DB_USER: transaction_user
-          DB_PASSWORD: testpassword
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
           DB_NAME: transacscope_test_db
           ALLOWED_HOSTS: localhost,127.0.0.1,testserver,test
           ALLOWED_ORIGINS: http://localhost:5173
