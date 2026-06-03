@@ -29,10 +29,14 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     const status = error.response?.status;
+    const requestUrl = error.config?.url ?? "";
 
-    // 401 = token expired / unauthorized
-    // 420 = your custom status (keep it if your backend uses it)
-    if (status === 401 || status === 420) {
+    // wrong credentials also return 401 and should be handled by the caller
+    const isAuthEndpoint =
+      requestUrl.includes("/auth/login") ||
+      requestUrl.includes("/auth/register");
+
+    if ((status === 401 || status === 420) && !isAuthEndpoint) {
       localStorage.removeItem("access_token");
       localStorage.removeItem("token_type");
       alert("Session expired. Please log in again.");
@@ -42,7 +46,6 @@ api.interceptors.response.use(
     if (status === 429) {
       rateLimitCallback();
     }
-
 
     return Promise.reject(error);
   }
