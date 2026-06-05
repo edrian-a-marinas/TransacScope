@@ -19,7 +19,7 @@ export function useDemoLogin(
     if (loading || isLocked) return;
     setErrors([]);
     setLoading(true);
-    api.post("api/auth/login", { email: "test.standard@gmail.com", password: "test1234" })
+    api.post("api/auth/login", { email: "test.standard@gmail.com", password: "test4444" })
       .then(response => {
         const { access_token, token_type, user, password_expired } = response.data;
         const parsedUser = UserSchema.parse(user);
