@@ -109,23 +109,19 @@ export default function DashboardOverview({ userRole, userId, chartsReadyRef }: 
       const ym = t.transaction_date.slice(0, 7);
       if (ym) monthSet.add(ym);
     });
-    const sorted = Array.from(monthSet).sort((a, b) => b.localeCompare(a));
-    return [
-      ...sorted.map(ym => ({ key: ym, label: formatPeriodLabel(ym) })),
-      { key: "all", label: "All Time" },
-    ];
+    return Array.from(monthSet).sort((a, b) => b.localeCompare(a));
   }, [transactions, isAdmin, viewMode, userId]);
   const initializedRef = useRef(false);
   useEffect(() => {
-    if (availablePeriods.length <= 1) return;
+    if (availablePeriods.length === 0) return;
     if (initializedRef.current) return;
     initializedRef.current = true;
-    const hasCurrent = availablePeriods.some(p => p.key === currentYM);
+    const hasCurrent = availablePeriods.includes(currentYM);
     if (hasCurrent) {
       setPeriod(currentYM);
     } else {
-      const past = availablePeriods.filter(p => p.key !== "all" && p.key <= currentYM);
-      setPeriod(past.length > 0 ? past[0].key : "all");
+      const past = availablePeriods.filter(ym => ym <= currentYM);
+      setPeriod(past.length > 0 ? past[0] : "all");
     }
   }, [availablePeriods]);
   const getCategoryName = (id: number | null) => {
@@ -213,7 +209,7 @@ export default function DashboardOverview({ userRole, userId, chartsReadyRef }: 
           color:         hsl(var(--page-fg));
           font-size:     0.75rem;
           font-weight:   600;
-          padding:       0.3rem 0.5rem;
+          padding:       0.45rem 0.4rem;
           cursor:        pointer;
           outline:       none;
           transition:    border-color 0.15s, box-shadow 0.15s;
@@ -235,6 +231,20 @@ export default function DashboardOverview({ userRole, userId, chartsReadyRef }: 
           background: hsl(var(--primary));
           color:      #fff;
         }
+        .period-scroll::-webkit-scrollbar {
+          height: 2px;
+        }
+        .period-scroll::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .period-scroll::-webkit-scrollbar-thumb {
+          background:    transparent;
+          border-radius: 999px;
+          transition:    background 0.2s;
+        }
+        .period-scroll.is-scrolling::-webkit-scrollbar-thumb {
+          background: hsl(var(--primary) / 0.45);
+        }
       `}</style>
       <div className="space-y-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -250,7 +260,7 @@ export default function DashboardOverview({ userRole, userId, chartsReadyRef }: 
                 : "Your personal transaction summary"}
             </p>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap", justifyContent: "flex-end" }}>
+          <div style={{ display: "flex", alignItems: "flex-start", gap: "0.75rem", flexWrap: "wrap", justifyContent: "flex-end" }}>
             {isAdmin ? (
               <select
                 value={viewMode}
@@ -264,7 +274,7 @@ export default function DashboardOverview({ userRole, userId, chartsReadyRef }: 
               <span style={{
                 fontSize:     "0.75rem",
                 fontWeight:   600,
-                padding:      "0.25rem 0.65rem",
+                padding:      "0.4rem 0.65rem",
                 borderRadius: "0.375rem",
                 border:       "1px solid hsl(var(--page-border))",
                 color:        "hsl(var(--page-fg-muted))",
@@ -274,48 +284,166 @@ export default function DashboardOverview({ userRole, userId, chartsReadyRef }: 
                 Viewing own
               </span>
             )}
-            <div
-              className="ts-toggle-bar"
-              style={{
-                borderRadius: "0.5rem",
-                padding:      "0.25rem",
-                display:      "grid",
-                gridTemplateColumns: `repeat(${Math.min(availablePeriods.length, 6)}, auto)`,
-                gap:          "0.25rem",
-              }}
-            >
-              {availablePeriods.map((p) => {
-                const isActive  = period === p.key;
-                const isHovered = hoveredPeriod === p.key;
-                return (
-                  <button
-                    key={p.key}
-                    onClick={() => setPeriod(p.key)}
-                    onMouseEnter={() => setHoveredPeriod(p.key)}
-                    onMouseLeave={() => setHoveredPeriod(null)}
-                    className={isActive ? "ts-surface ts-page-fg" : "ts-page-fg-light"}
-                    style={{
-                      fontSize:        "0.75rem",
-                      fontWeight:      isActive ? 600 : 500,
-                      padding:         "0.25rem 0.75rem",
-                      borderRadius:    "0.375rem",
-                      border:          "none",
-                      cursor:          "pointer",
-                      whiteSpace:      "nowrap",
-                      transition:      "background-color 0.15s, color 0.15s",
-                      backgroundColor: isActive  ? PRIMARY
-                                     : isHovered ? "hsl(var(--income) / 0.12)"
-                                     : "transparent",
-                      color:           isActive  ? "hsl(0,0%,100%)"
-                                     : isHovered ? INCOME
-                                     : undefined,
-                      boxShadow:       isActive  ? "0 1px 4px hsl(var(--primary) / 0.25)" : "none",
-                    }}
-                  >
-                    {p.label}
-                  </button>
-                );
-              })}
+            <div style={{ display: "flex", alignItems: "flex-start", gap: "0.5rem", flexWrap: "nowrap" }}>
+              <div style={{ position: "relative", display: "flex", flexDirection: "column", gap: "0.2rem", alignSelf: "flex-start" }}>
+                <div
+                  ref={(el) => {
+                    if (!el) return;
+                    const onWheel = (e: WheelEvent) => {
+                      if (availablePeriods.length <= 5) return;
+                      if (e.deltaY !== 0) {
+                        e.preventDefault();
+                        el.scrollBy({ left: e.deltaY * 2, behavior: "smooth" });
+                      }
+                    };
+                    el.addEventListener("wheel", onWheel, { passive: false });
+
+                    el.classList.add("period-scroll");
+
+                    let scrollTimer: ReturnType<typeof setTimeout>;
+                    const updateHints = () => {
+                      const hintLeft  = el.parentElement?.querySelector("#scroll-hint-left")  as HTMLElement | null;
+                      const hintRight = el.parentElement?.querySelector("#scroll-hint-right") as HTMLElement | null;
+                      const atStart   = el.scrollLeft < 20;
+                      const atEnd     = el.scrollLeft > el.scrollWidth - el.clientWidth - 20;
+                      if (hintLeft)  hintLeft.style.opacity  = atEnd   ? "1" : "0";
+                      if (hintRight) hintRight.style.opacity = atStart ? "1" : "0";
+
+                      el.classList.add("is-scrolling");
+                      clearTimeout(scrollTimer);
+                      scrollTimer = setTimeout(() => el.classList.remove("is-scrolling"), 800);
+                    };
+
+                    el.addEventListener("scroll", updateHints);
+                    setTimeout(updateHints, 100);
+
+                    let isDown = false;
+                    let startX = 0;
+                    let scrollLeft = 0;
+                    el.addEventListener("mousedown", (e) => {
+                      isDown = true;
+                      startX = e.pageX - el.offsetLeft;
+                      scrollLeft = el.scrollLeft;
+                    });
+                    el.addEventListener("mouseleave", () => {
+                      isDown = false;
+                    });
+                    el.addEventListener("mouseup", () => {
+                      isDown = false;
+                    });
+                    el.addEventListener("mousemove", (e) => {
+                      if (!isDown) return;
+                      e.preventDefault();
+                      const x = e.pageX - el.offsetLeft;
+                      const walk = (x - startX) * 1.5;
+                      el.scrollLeft = scrollLeft - walk;
+                    });
+                  }}
+                  style={{
+                    display:         "flex",
+                    gap:             "0.25rem",
+                    overflowX:       availablePeriods.length > 5 ? "auto" : "visible",
+                    scrollbarWidth:  "none",
+                    background:      "hsl(var(--page-surface))",
+                    border:          "1px solid hsl(var(--page-border))",
+                    borderRadius:    "0.5rem",
+                    padding:         "0.25rem",
+                    maxWidth:        availablePeriods.length > 5 ? "420px" : undefined,
+                  }}
+                >
+                {availablePeriods.map((ym) => {
+                  const isActive  = period === ym;
+                  const isHovered = hoveredPeriod === ym;
+                  return (
+                    <button
+                      key={ym}
+                      onClick={() => setPeriod(ym)}
+                      onMouseEnter={() => setHoveredPeriod(ym)}
+                      onMouseLeave={() => setHoveredPeriod(null)}
+                      style={{
+                        flexShrink:      0,
+                        fontSize:        "0.75rem",
+                        fontWeight:      isActive ? 600 : 500,
+                        padding:         "0.25rem 0.75rem",
+                        borderRadius:    "0.375rem",
+                        border:          "none",
+                        cursor:          "pointer",
+                        whiteSpace:      "nowrap",
+                        transition:      "background-color 0.15s, color 0.15s",
+                        backgroundColor: isActive  ? PRIMARY
+                                       : isHovered ? "hsl(var(--income) / 0.12)"
+                                       : "transparent",
+                        color:           isActive  ? "hsl(0,0%,100%)"
+                                       : isHovered ? INCOME
+                                       : "hsl(var(--page-fg-muted))",
+                        boxShadow:       isActive  ? "0 1px 4px hsl(var(--primary) / 0.25)" : "none",
+                      }}
+                    >
+                      {formatPeriodLabel(ym)}
+                    </button>
+                  );
+                })}
+              </div>
+                {availablePeriods.length > 5 && (
+                  <div style={{ display: "flex", justifyContent: "space-between", paddingInline: "0.25rem" }}>
+                    <div
+                      id="scroll-hint-left"
+                      style={{
+                        fontSize:      "0.6rem",
+                        fontWeight:    500,
+                        color:         "hsl(var(--page-fg-muted))",
+                        whiteSpace:    "nowrap",
+                        pointerEvents: "none",
+                        opacity:       0,
+                        transition:    "opacity 0.2s",
+                      }}
+                    >
+                      ← scroll up or drag to see recent months 
+                    </div>
+                    <div
+                      id="scroll-hint-right"
+                      style={{
+                        fontSize:      "0.6rem",
+                        fontWeight:    500,
+                        color:         "hsl(var(--page-fg-muted))",
+                        whiteSpace:    "nowrap",
+                        pointerEvents: "none",
+                        opacity:       0,
+                        transition:    "opacity 0.2s",
+                      }}
+                    >
+                      scroll down or drag to view older months →
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* All Time — separate pill */}
+              <button
+                onClick={() => setPeriod("all")}
+                onMouseEnter={() => setHoveredPeriod("all")}
+                onMouseLeave={() => setHoveredPeriod(null)}
+                style={{
+                  flexShrink:      0,
+                  fontSize:        "0.75rem",
+                  fontWeight:      period === "all" ? 600 : 500,
+                  padding:         "0.51rem 0.75rem",
+                  borderRadius:    "0.375rem",
+                  border:          period === "all" ? "none" : "1px solid hsl(var(--page-border))",
+                  cursor:          "pointer",
+                  whiteSpace:      "nowrap",
+                  transition:      "background-color 0.15s, color 0.15s",
+                  backgroundColor: period === "all"       ? PRIMARY
+                                 : hoveredPeriod === "all" ? "hsl(var(--income) / 0.12)"
+                                 : "hsl(var(--page-surface))",
+                  color:           period === "all"       ? "hsl(0,0%,100%)"
+                                 : hoveredPeriod === "all" ? INCOME
+                                 : "hsl(var(--page-fg))",
+                  boxShadow:       period === "all" ? "0 1px 4px hsl(var(--primary) / 0.25)" : "none",
+                }}
+              >
+                All time
+              </button>
             </div>
           </div>
         </div>
