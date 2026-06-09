@@ -161,7 +161,7 @@ export default function DashboardOverview({ userRole, userId, chartsReadyRef }: 
     return Array.from(map.entries())
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([date, val]) => ({
-        date:    new Date(date).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+        date:    new Date(date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
         income:  val.income,
         expense: val.expense,
         net:     val.income - val.expense,
