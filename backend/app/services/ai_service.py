@@ -341,7 +341,7 @@ Financial data:
 
         client = get_groq_client()
         response = await client.chat.completions.create(
-            model=os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile"),
+            model=os.getenv("GROQ_MODEL", "openai/gpt-oss-120b"),
             messages=messages,  # type: ignore
             max_tokens=512,
             temperature=0.5,
